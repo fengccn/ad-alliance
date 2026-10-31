@@ -1,1 +1,319 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script defer src="https://umami.880200.xyz/script.js" data-website-id="36148f3f-9447-4962-807f-e8385d951c1f"></script>
+<title>广告联盟 · 管理后台</title>
+<style>
+  :root { --primary:#1a73e8; --ok:#188038; --warn:#f9ab00; --danger:#d93025; --bg:#f4f5f7; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:#202124; font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  header { background:#fff; border-bottom:1px solid #e8eaed; padding:14px 24px; display:flex; align-items:center; gap:16px; position:sticky; top:0; z-index:10; }
+  header h1 { font-size:18px; margin:0; flex:1; }
+  .tabs { display:flex; gap:6px; }
+  .tab { padding:8px 16px; border:1px solid transparent; border-radius:8px; cursor:pointer; font-size:14px; color:#5f6368; background:transparent; }
+  .tab.active { background:var(--primary); color:#fff; }
+  main { max-width:1080px; margin:24px auto; padding:0 24px; }
+  .panel { display:none; }
+  .panel.active { display:block; }
+  .card { background:#fff; border-radius:12px; box-shadow:0 1px 3px rgba(60,64,67,.12); padding:20px; margin-bottom:20px; }
+  .stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:16px; }
+  .stat { background:#fff; border-radius:12px; padding:18px; box-shadow:0 1px 3px rgba(60,64,67,.12); }
+  .stat .num { font-size:28px; font-weight:600; }
+  .stat .lbl { font-size:13px; color:#5f6368; margin-top:4px; }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  th,td { text-align:left; padding:10px 12px; border-bottom:1px solid #e8eaed; vertical-align:middle; }
+  th { color:#5f6368; font-weight:500; background:#fafafa; }
+  td img.ad { max-height:60px; max-width:200px; border-radius:4px; background:#f1f3f4; object-fit:contain; }
+  .badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:12px; }
+  .b-active{background:#e6f4ea;color:#188038} .b-pending{background:#fef7e0;color:#b06000}
+  .b-suspended{background:#fce8e6;color:#d93025} .b-rejected{background:#fce8e6;color:#d93025}
+  .btn { padding:6px 14px; border:none; border-radius:6px; cursor:pointer; font-size:13px; }
+  .btn-ok { background:var(--ok); color:#fff; }
+  .btn-danger { background:var(--danger); color:#fff; }
+  .btn-ghost { background:#e8eaed; color:#202124; }
+  .btn-warn { background:var(--warn); color:#fff; }
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .link { color:var(--primary); word-break:break-all; font-size:13px; }
+  .muted { color:#5f6368; }
+  .login { max-width:380px; margin:120px auto; background:#fff; border-radius:12px; padding:32px; box-shadow:0 1px 3px rgba(60,64,67,.2); text-align:center; }
+  .login input { width:100%; padding:12px; margin:16px 0; border:1px solid #dadce0; border-radius:8px; font-size:15px; }
+  .login button { width:100%; padding:12px; background:var(--primary); color:#fff; border:none; border-radius:8px; font-size:15px; cursor:pointer; }
+  .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#323639; color:#fff; padding:10px 18px; border-radius:8px; font-size:14px; opacity:0; transition:opacity .25s; z-index:20; }
+  .toast.show{opacity:1}
+  canvas { width:100%; }
+  .nav-note { font-size:12px; color:#5f6368; margin-left:auto; }
+</style>
+</head>
+<body>
+<header>
+  <h1>互助广告联盟 · 管理后台</h1>
+  <div class="tabs" id="tabs">
+    <button class="tab active" data-panel="pending">待审广告</button>
+    <button class="tab" data-panel="sites">站点管理</button>
+    <button class="tab" data-panel="dash">数据看板</button>
+    <button class="tab" data-panel="settings">平台设置</button>
+  </div>
+</header>
 
+<!-- 登录 -->
+<div class="login" id="loginView">
+  <h2>管理员登录</h2>
+  <p class="muted">输入管理 Token（即 worker 配置里的 ADMIN_TOKEN）</p>
+  <input type="password" id="tokenInput" placeholder="管理 Token">
+  <button id="loginBtn">进入后台</button>
+</div>
+
+<script src="https://blogunion.880200.xyz/embed.js" data-site-id="3" async defer></script>
+
+<main id="mainView" style="display:none">
+  <!-- 待审广告 -->
+  <div class="panel active" id="panel-pending">
+    <div class="card">
+      <h3 style="margin-top:0">待审核广告</h3>
+      <table>
+        <thead><tr><th>ID</th><th>广告主站点</th><th>广告图</th><th>目标链接</th><th>提交时间</th><th>操作</th></tr></thead>
+        <tbody id="pendingBody"><tr><td colspan="6" class="muted">加载中…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 站点管理 -->
+  <div class="panel" id="panel-sites">
+    <div class="card">
+      <h3 style="margin-top:0">站点列表</h3>
+      <table>
+        <thead><tr><th>ID</th><th>站点</th><th>会员广告(300×100)</th><th>联系邮箱</th><th>状态</th><th>广告数</th><th>曝光/点击</th><th>每日上限</th><th>操作</th></tr></thead>
+        <tbody id="sitesBody"><tr><td colspan="8" class="muted">加载中…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 数据看板 -->
+  <div class="panel" id="panel-dash">
+    <div class="stats-grid" id="dashStats"></div>
+    <div class="card" style="margin-top:20px">
+      <h3 style="margin-top:0">近 30 天趋势</h3>
+      <canvas id="trendChart" height="280"></canvas>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0">今日曝光 Top 站点</h3>
+      <table>
+        <thead><tr><th>#</th><th>站点</th><th>今日曝光</th></tr></thead>
+        <tbody id="topSitesBody"><tr><td colspan="3" class="muted">加载中…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 平台设置 -->
+  <div class="panel" id="panel-settings">
+    <div class="card">
+      <h3 style="margin-top:0">平台自身广告（左侧 100×100）</h3>
+      <p class="muted" style="margin-top:0">这是展示在所有嵌入位左侧、为平台本身导流的广告图和链接。</p>
+      <div style="display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start">
+        <div>
+          <div style="width:100px;height:100px;border:1px dashed #dadce0;border-radius:6px;background:#f8f9fa;display:flex;align-items:center;justify-content:center;overflow:hidden">
+            <img id="platPreview" style="max-width:100px;max-height:100px;display:none" alt="预览">
+            <span id="platPreviewEmpty" class="muted" style="font-size:12px">暂无图</span>
+          </div>
+        </div>
+        <div style="flex:1;min-width:280px">
+          <div style="margin-bottom:12px"><label style="font-size:13px;color:#3c4043;display:block;margin-bottom:4px">广告图片地址（建议 100×100）</label>
+            <input id="platImageUrl" style="width:100%;padding:8px;border:1px solid #dadce0;border-radius:6px" placeholder="https://.../logo-100x100.png"></div>
+          <div style="margin-bottom:12px"><label style="font-size:13px;color:#3c4043;display:block;margin-bottom:4px">跳转链接（指向平台首页）</label>
+            <input id="platTargetUrl" style="width:100%;padding:8px;border:1px solid #dadce0;border-radius:6px" placeholder="https://你的域名"></div>
+          <button class="btn btn-ok" id="saveSettingsBtn">保存设置</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  var API_BASE = ''; // 管理后台与 Worker 同域时留空；跨域时填 Worker 域名，如 'https://ad.yourdomain.com'
+  var token = localStorage.getItem('ad_token') || '';
+  var toastEl = document.getElementById('toast');
+
+  function toast(msg) { toastEl.textContent = msg; toastEl.classList.add('show'); setTimeout(function(){ toastEl.classList.remove('show'); }, 2400); }
+
+  function authHeaders() { return { 'Content-Type': 'application/json', 'X-Admin-Token': token }; }
+
+  async function api(path, opts) {
+    opts = opts || {};
+    var res = await fetch(API_BASE + path, Object.assign({
+      headers: authHeaders()
+    }, opts));
+    if (res.status === 401) { showLogin(); throw new Error('unauthorized'); }
+    if (!res.ok) { var e = await res.json().catch(function(){return{};}); throw new Error(e.error || res.status); }
+    return res.json();
+  }
+
+  function esc(s) { return String(s||'').replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  function badge(s) { return '<span class="badge b-' + s + '">' + esc(s) + '</span>'; }
+
+  // ---- 登录 ----
+  function showLogin() { document.getElementById('loginView').style.display = 'block'; document.getElementById('mainView').style.display = 'none'; }
+  function showMain() { document.getElementById('loginView').style.display = 'none'; document.getElementById('mainView').style.display = 'block'; }
+  if (token) showMain(); else showLogin();
+  document.getElementById('loginBtn').addEventListener('click', function () {
+    token = document.getElementById('tokenInput').value.trim();
+    if (!token) return toast('请输入管理 Token');
+    localStorage.setItem('ad_token', token);
+    showMain();
+    loadPending(); loadSites(); loadDash(); loadSettings();
+  });
+
+  // ---- Tab 切换 ----
+  document.getElementById('tabs').addEventListener('click', function (e) {
+    var btn = e.target.closest('.tab'); if (!btn) return;
+    document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+    document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
+    btn.classList.add('active');
+    document.getElementById('panel-' + btn.dataset.panel).classList.add('active');
+  });
+
+  // ---- 待审广告 ----
+  async function loadPending() {
+    var body = document.getElementById('pendingBody');
+    try {
+      var rows = await api('/admin/api/ads?status=pending');
+      if (!rows.length) { body.innerHTML = '<tr><td colspan="6" class="muted">暂无待审广告</td></tr>'; return; }
+      body.innerHTML = rows.map(function (a) {
+        return '<tr><td>'+a.id+'</td><td>'+esc(a.site_name)+'<div class="muted">site#'+a.site_id+'</div></td>' +
+          '<td><img class="ad" src="'+esc(a.image_url)+'" onerror="this.style.display=\'none\'"></td>' +
+          '<td><a class="link" href="'+esc(a.target_url)+'" target="_blank" rel="nofollow">'+esc(a.target_url)+'</a></td>' +
+          '<td class="muted">'+esc(a.created_at)+'</td>' +
+          '<td><button class="btn btn-ok" data-act="approve" data-id="'+a.id+'">通过</button> ' +
+          '<button class="btn btn-danger" data-act="reject" data-id="'+a.id+'">驳回</button></td></tr>';
+      }).join('');
+    } catch (e) { body.innerHTML = '<tr><td colspan="6" class="muted">加载失败：'+esc(e.message)+'</td></tr>'; }
+  }
+  document.getElementById('pendingBody').addEventListener('click', async function (e) {
+    var btn = e.target.closest('button[data-act]'); if (!btn) return;
+    btn.disabled = true;
+    try {
+      await api('/admin/api/ads/' + btn.dataset.id + '/' + btn.dataset.act, { method: 'POST' });
+      toast('已' + (btn.dataset.act === 'approve' ? '通过' : '驳回') + ' 广告 #' + btn.dataset.id);
+      loadPending(); loadSites();
+    } catch (err) { toast('失败：' + err.message); btn.disabled = false; }
+  });
+
+  // ---- 站点管理 ----
+  async function loadSites() {
+    var body = document.getElementById('sitesBody');
+    try {
+      var rows = await api('/admin/api/sites');
+      if (!rows.length) { body.innerHTML = '<tr><td colspan="9" class="muted">暂无站点</td></tr>'; return; }
+      body.innerHTML = rows.map(function (s) {
+        return '<tr><td>'+s.id+'</td><td><b>'+esc(s.site_name)+'</b><div class="muted">'+esc(s.site_url)+'</div></td>' +
+          '<td>'+(s.ad_image_url
+            ? '<img class="ad" src="'+esc(s.ad_image_url)+'" title="会员广告" style="max-height:40px;max-width:180px" onerror="this.style.display=\'none\'">'
+            : '<span class="muted">无广告</span>')+'</td>' +
+          '<td>'+esc(s.contact_email)+'</td><td>'+badge(s.status)+'</td>' +
+          '<td>'+s.ad_count+'</td><td>'+s.imp_count+' / '+s.clk_count+'</td>' +
+          '<td><input type="number" min="1" value="'+s.daily_cap+'" data-cap="'+s.id+'" style="width:90px;padding:4px">' +
+          '<button class="btn btn-ghost" data-savecap="'+s.id+'" style="margin-left:4px">存</button></td>' +
+          '<td>' +
+            (s.status !== 'active' ? '<button class="btn btn-ok" data-site="'+s.id+'" data-st="active">启用</button> ' : '') +
+            (s.status === 'active' ? '<button class="btn btn-warn" data-site="'+s.id+'" data-st="suspended">暂停</button> ' : '') +
+            '<button class="btn btn-danger" data-del="'+s.id+'">删除</button>' +
+          '</td></tr>';
+      }).join('');
+    } catch (e) { body.innerHTML = '<tr><td colspan="8" class="muted">加载失败：'+esc(e.message)+'</td></tr>'; }
+  }
+  document.getElementById('sitesBody').addEventListener('click', async function (e) {
+    var st = e.target.closest('button[data-site]'); var cap = e.target.closest('button[data-savecap]'); var del = e.target.closest('button[data-del]');
+    try {
+      if (st) {
+        await api('/admin/api/sites/' + st.dataset.site + '/status', { method: 'POST', body: JSON.stringify({ status: st.dataset.st }) });
+        toast('站点 #' + st.dataset.site + ' → ' + st.dataset.st);
+        loadSites();
+      } else if (cap) {
+        var input = document.querySelector('input[data-cap="' + cap.dataset.savecap + '"]');
+        var v = Number(input.value);
+        if (!v || v <= 0) return toast('每日上限必须是正整数');
+        await api('/admin/api/sites/' + cap.dataset.savecap + '/cap', { method: 'POST', body: JSON.stringify({ daily_cap: v }) });
+        toast('已更新站点 #' + cap.dataset.savecap + ' 每日上限');
+      } else if (del) {
+        if (!confirm('确定删除站点 #' + del.dataset.del + '？将同时删除其广告和所有统计记录，不可恢复。')) return;
+        await api('/admin/api/sites/' + del.dataset.del, { method: 'DELETE' });
+        toast('已删除站点 #' + del.dataset.del);
+        loadSites();
+      }
+    } catch (err) { toast('失败：' + err.message); }
+  });
+
+  // ---- 数据看板 ----
+  function drawChart(labels, imp, clk) {
+    var c = document.getElementById('trendChart');
+    var dpr = window.devicePixelRatio || 1;
+    var w = c.parentNode.clientWidth || 800; c.width = w * dpr; c.height = 280 * dpr; c.style.height = '280px';
+    var g = c.getContext('2d'); g.scale(dpr, dpr); g.clearRect(0,0,w,280);
+    var padL = 46, padR = 12, padT = 16, padB = 30, W = w - padL - padR, H = 280 - padT - padB;
+    var maxV = Math.max.apply(null, imp.concat(clk).concat([1])) * 1.1;
+    var step = W / (labels.length - 1 || 1);
+    g.font = '11px system-ui'; g.textAlign = 'right'; g.fillStyle = '#9aa0a6';
+    for (var i = 0; i <= 4; i++) { var v = maxV * i / 4; var y = padT + H - H * i / 4; g.strokeStyle='#e8eaed'; g.beginPath(); g.moveTo(padL,y); g.lineTo(w-padR,y); g.stroke(); g.fillText(Math.round(v).toLocaleString(), padL-6, y+3); }
+    function line(arr, color) { g.strokeStyle=color; g.lineWidth=2; g.beginPath(); arr.forEach(function(v,i){ var x=padL+step*i, y=padT+H-H*v/maxV; i?g.lineTo(x,y):g.moveTo(x,y); }); g.stroke(); }
+    line(imp, '#1a73e8'); line(clk, '#188038');
+    g.fillStyle = '#5f6368'; g.textAlign = 'center';
+    labels.forEach(function(l,i){ if (i % Math.ceil(labels.length/12) === 0) g.fillText(l, padL+step*i, 280-10); });
+  }
+
+  async function loadDash() {
+    var sEl = document.getElementById('dashStats');
+    try {
+      var d = await api('/admin/api/dashboard?days=30');
+      sEl.innerHTML =
+        '<div class="stat"><div class="num">'+d.totals.impressions.toLocaleString()+'</div><div class="lbl">近'+d.days+'天总曝光</div></div>' +
+        '<div class="stat"><div class="num">'+d.totals.clicks.toLocaleString()+'</div><div class="lbl">近'+d.days+'天总点击</div></div>' +
+        '<div class="stat"><div class="num">'+d.totals.ctr+'%</div><div class="lbl">整体点击率</div></div>' +
+        '<div class="stat"><div class="num">'+d.top_sites.length+'</div><div class="lbl">今日有曝光站点</div></div>';
+      drawChart(d.series.map(function(s){return s.date.slice(5);}), d.series.map(function(s){return s.impressions;}), d.series.map(function(s){return s.clicks;}));
+      var tb = document.getElementById('topSitesBody');
+      tb.innerHTML = d.top_sites.length ? d.top_sites.map(function(s,i){
+        return '<tr><td>'+(i+1)+'</td><td>'+esc(s.site_name)+'</td><td>'+s.imp.toLocaleString()+'</td></tr>';
+      }).join('') : '<tr><td colspan="3" class="muted">今日暂无曝光</td></tr>';
+    } catch (e) { sEl.innerHTML = '<div class="stat"><div class="lbl">加载失败：'+esc(e.message)+'</div></div>'; }
+  }
+
+  // ---- 平台设置 ----
+  async function loadSettings() {
+    try {
+      var s = await api('/admin/api/settings');
+      document.getElementById('platImageUrl').value = s.platform_ad_image_url || '';
+      document.getElementById('platTargetUrl').value = s.platform_ad_target_url || '';
+      renderPreview();
+    } catch (e) { /* ignore */ }
+  }
+  function renderPreview() {
+    var url = document.getElementById('platImageUrl').value.trim();
+    var img = document.getElementById('platPreview');
+    var empty = document.getElementById('platPreviewEmpty');
+    if (url) { img.src = url; img.style.display = 'block'; empty.style.display = 'none'; }
+    else { img.style.display = 'none'; empty.style.display = 'block'; }
+  }
+  document.getElementById('platImageUrl').addEventListener('input', renderPreview);
+  document.getElementById('saveSettingsBtn').addEventListener('click', async function () {
+    var b = this; b.disabled = true;
+    try {
+      await api('/admin/api/settings', { method: 'POST', body: JSON.stringify({
+        platform_ad_image_url: document.getElementById('platImageUrl').value.trim(),
+        platform_ad_target_url: document.getElementById('platTargetUrl').value.trim()
+      })});
+      toast('平台设置已保存');
+    } catch (e) { toast('保存失败：' + e.message); }
+    finally { b.disabled = false; }
+  });
+
+  // 初次加载
+  if (token) { loadPending(); loadSites(); loadDash(); loadSettings(); }
+  window.addEventListener('resize', function(){ if (document.getElementById('panel-dash').classList.contains('active')) loadDash(); });
+})();
+</script>
+</body>
+</html>
