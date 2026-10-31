@@ -1,0 +1,24 @@
+name = "ad-alliance"
+main = "src/index.js"
+compatibility_date = "2025-01-01"
+
+# Workers Static Assets：把 public/ 下的静态文件（embed.js、admin/、demo.html、docs/）
+# 与 Worker 放在同一个部署里统一托管，一次部署搞定前后端。
+# 静态文件由平台直接服务（如 /embed.js、/admin/index.html），
+# 非静态路径（/api/*、/click/*、/admin/api/*）进入 Worker 处理。
+[assets]
+directory = "./public"
+
+# 部署时替换为你的 D1 数据库 ID：
+#   wrangler d1 create ad-alliance-db   # 创建后复制 database_id
+[[d1_databases]]
+binding = "DB"
+database_name = "ad-alliance-db"
+database_id = "9d8b2ab1-8d18-4d84-b405-84d9bd8ea87e"
+
+[vars]
+# 点击跳转链接的域名前缀（必须是本 Worker 可访问的 HTTPS 域名）
+APP_BASE = "https://blogunion.880200.xyz"
+# 新站冷启动：注册不满 NEW_SITE_DAYS 天的站点，权重乘 NEW_SITE_BOOST
+NEW_SITE_DAYS = "7"
+NEW_SITE_BOOST = "1.5"
