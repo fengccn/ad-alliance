@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>互助曝光广告联盟 · 系统架构</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #f4f5f7; color: #202124; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; padding: 24px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: #5f6368; font-size: 13px; margin: 0 0 20px; }
+  .legend { display: flex; gap: 18px; flex-wrap: wrap; font-size: 12px; color: #5f6368; margin-bottom: 20px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .sw { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
+
+  .flow { display: flex; align-items: stretch; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+  .step { flex: 1 1 150px; min-width: 150px; background: #fff; border-radius: 10px; padding: 12px 14px; border: 1px solid #e0e0e0; box-shadow: 0 1px 2px rgba(60,64,67,.08); position: relative; }
+  .step .no { font-size: 11px; color: #fff; background: #5f6368; width: 18px; height: 18px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-right: 6px; }
+  .step h3 { margin: 4px 0 6px; font-size: 14px; }
+  .step p { margin: 0; font-size: 12px; color: #5f6368; line-height: 1.5; }
+  .step b { color: #202124; }
+  .arrow { align-self: center; font-size: 20px; color: #b0b3b9; flex: 0 0 auto; }
+  .arrow.vert { align-self: center; }
+
+  .tag { display: inline-block; padding: 1px 8px; border-radius: 8px; font-size: 11px; margin-bottom: 6px; }
+  .t-blue { background: #e8f0fe; color: #1967d2; }
+  .t-green { background: #e6f4ea; color: #188038; }
+  .t-orange { background: #fef7e0; color: #b06000; }
+
+  .cols { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 18px; }
+  .col { flex: 1 1 300px; background: #fff; border-radius: 12px; border: 1px solid #e0e0e0; box-shadow: 0 1px 2px rgba(60,64,67,.08); padding: 16px; }
+  .col h3 { margin: 0 0 12px; font-size: 15px; border-bottom: 2px solid #e8eaed; padding-bottom: 8px; }
+  .col ul { margin: 0; padding: 0 0 0 18px; font-size: 12.5px; color: #3c4043; line-height: 1.7; }
+  .col li b { color: #202124; }
+
+  .risk { background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; margin-top: 16px; padding: 16px; }
+  .risk h3 { margin: 0 0 12px; font-size: 15px; }
+  .risk-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
+  .r-item { border: 1px solid #e0e0e0; border-radius: 8px; padding: 10px 12px; font-size: 12.5px; background: #fafafa; }
+  .r-item b { display: block; color: #202124; margin-bottom: 3px; }
+  .r-item span { color: #5f6368; }
+
+  .note { margin-top: 16px; font-size: 12px; color: #b06000; background: #fef7e0; border-radius: 8px; padding: 10px 14px; }
+</style>
+</head>
+<body>
+  <h1>互助曝光广告联盟 · 系统架构</h1>
+  <p class="sub">Cloudflare Workers + D1 轻量自托管 · 每个站点既是广告主也是发布商</p>
+
+  <div class="legend">
+    <span><span class="sw" style="background:#fff;border:1px solid #e0e0e0"></span> 参与站点</span>
+    <span><span class="sw" style="background:#e8f0fe"></span> 嵌入/跳转（前端）</span>
+    <span><span class="sw" style="background:#e6f4ea"></span> Worker API（后端）</span>
+    <span><span class="sw" style="background:#fef7e0"></span> 风控节点</span>
+  </div>
+
+  <h2 style="font-size:15px;margin:22px 0 8px;">曝光链路（访客打开站点A → 看到双栏广告）</h2>
+  <div class="flow">
+    <div class="step"><span class="no">1</span><h3>访客打开站点 A</h3><p>浏览器加载站点 A 页面</p></div>
+    <div class="arrow">→</div>
+    <div class="step"><span class="no">2</span><h3>嵌入 JS（双栏）</h3><p>原生 JS，零依赖<br>左侧 100×100 自身广告 + 右侧 300×100 伙伴广告<br><span class="tag t-blue">前端</span></p></div>
+    <div class="arrow">→</div>
+    <div class="step"><span class="no">3</span><h3>GET /api/embed?site_id=A</h3><p>一次请求，返回左右两块数据</p></div>
+    <div class="arrow">→</div>
+    <div class="step" style="border-color:#188038;border-width:1.5px"><span class="no" style="background:#188038">4</span><h3>Worker 校验 + 公平随机</h3>
+      <p>① 校验站点 active<br>
+      <span style="color:#b06000">② 左侧：读本站自身广告（sites.self_*，100×100）</span><br>
+      <span style="color:#b06000">③ 右侧：排除 A 的广告，过滤达每日上限站点，按权重×冷启动加权随机</span><br>
+      <span style="color:#b06000">④ 曝光防刷：同 IP 1 分钟只记一次</span></p>
+      <span class="tag t-green">后端 API</span> <span class="tag t-orange">风控</span></div>
+    <div class="arrow">→</div>
+    <div class="step"><span class="no">5</span><h3>返回 JSON</h3><p>{ self:{image_url,target_url}, partner:{image_url,click_url} }<br><span class="tag t-blue">前端</span></p></div>
+    <div class="arrow">→</div>
+    <div class="step"><span class="no">6</span><h3>JS 渲染双栏</h3><p>左：A 自身广告（直链 A）；右：B 的广告（链接指向 /click/广告ID/A）</p></div>
+  </div>
+
+  <h2 style="font-size:15px;margin:24px 0 8px;">点击链路（访客点击 → 追踪 → 跳转）</h2>
+  <div class="flow">
+    <div class="step"><span class="no">1</span><h3>访客点击广告</h3><p>请求 /click/:ad_id/:site_id</p></div>
+    <div class="arrow">→</div>
+    <div class="step" style="border-color:#188038;border-width:1.5px"><span class="no" style="background:#188038">2</span><h3>Worker 记录点击</h3>
+      <p><span style="color:#b06000">点击防刷：同 IP 对同广告 5 分钟只计一次</span><br>
+      写入 clicks 表（ip_hash + UA，不存原始 IP）</p>
+      <span class="tag t-green">后端 API</span> <span class="tag t-orange">风控</span></div>
+    <div class="arrow">→</div>
+    <div class="step"><span class="no">3</span><h3>返回 HTML 延迟跳转页</h3><p>不用裸 302，先回极简页面 + setTimeout 跳转，过滤脚本抓重定向</p></div>
+    <div class="arrow">→</div>
+    <div class="step"><span class="no">4</span><h3>跳转到 B 的真实链接</h3><p>到达广告主 target_url</p></div>
+  </div>
+
+  <div class="cols">
+    <div class="col">
+      <h3>🗄 D1 数据库（五张核心表）</h3>
+      <ul>
+        <li><b>sites</b> — 站点：id / site_name / site_url / contact_email / api_key / status / daily_cap</li>
+        <li><b>ads</b> — 广告：id / site_id / image_url / target_url / status / weight</li>
+        <li><b>impressions</b> — 曝光日志：ad_id / site_id / ip_hash / created_at</li>
+        <li><b>clicks</b> — 点击日志：ad_id / site_id / ip_hash / user_agent / created_at</li>
+        <li><b>stats_daily</b> — 每日统计（可选物化表）</li>
+      </ul>
+      <p style="font-size:12px;color:#5f6368;margin-top:10px">日志只存 <b>ip_hash</b>（SHA-256+盐），保护访客隐私</p>
+    </div>
+    <div class="col">
+      <h3>🛠 管理后台（admin/index.html）</h3>
+      <ul>
+        <li><b>待审广告</b> — 通过 / 驳回（防违规、防钓鱼污染域名）</li>
+        <li><b>站点管理</b> — 启用 / 暂停 / 调整每日上限 / 查看自身广告</li>
+        <li><b>数据看板</b> — 曝光 / 点击趋势、点击率、Top 站点</li>
+      </ul>
+      <p style="font-size:12px;color:#5f6368;margin-top:10px">与 Worker 同一部署（Static Assets），调 <b>/admin/api/*</b>（X-Admin-Token 鉴权）</p>
+    </div>
+    <div class="col">
+      <h3>🔑 站点自助接口</h3>
+      <ul>
+        <li><b>/api/register</b> — 注册站点 + 提交广告素材 + 自身广告(100×100)</li>
+        <li><b>/api/self</b> — 已激活站点更新自身广告素材（api_key）</li>
+        <li><b>/api/ads</b> — 已激活站点提交新广告（api_key）</li>
+        <li><b>/api/stats</b> — 双向统计：<br>as_publisher（我展示别人）+ as_advertiser（别人展示我）</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="risk">
+    <h3>🛡 风控与公平性（已在代码中实现）</h3>
+    <div class="risk-grid">
+      <div class="r-item"><b>曝光防刷</b><span>同 ip_hash 对同站点 1 分钟内只记一次有效曝光</span></div>
+      <div class="r-item"><b>点击防刷</b><span>同 IP 对同广告 5 分钟内只计一次；用延迟跳转页过滤脚本</span></div>
+      <div class="r-item"><b>人工审核</b><span>所有站点与广告先 pending，审核通过才 active</span></div>
+      <div class="r-item"><b>每日配额</b><span>每站点广告每天最多展示 daily_cap 次，防大户垄断</span></div>
+      <div class="r-item"><b>冷启动加权</b><span>新站注册 7 天内权重 ×1.5，帮助获得初始曝光</span></div>
+      <div class="r-item"><b>异常检测</b><span>曝光正常但点击率 &gt; 10% 的站点自动标记待审核</span></div>
+    </div>
+  </div>
+
+  <div class="note">⚠ 关键点：右侧伙伴广告的 click_url 必须经过服务器（/click/…）中转，否则无法统计每个站点带来的曝光与点击。左侧自身广告直链本站，无需中转。</div>
+  <div class="note" style="margin-top:8px;background:#e6f4ea;color:#188038;">🔁 自动部署：整套代码托管在 GitHub，通过 Cloudflare「连接 Git」后 push 即自动部署（Worker + Static Assets 统一发布，改代码只改 GitHub）。</div>
+</body>
+</html>
