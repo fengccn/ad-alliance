@@ -1,0 +1,17 @@
+{
+  "name": "ad-alliance-worker",
+  "version": "1.0.0",
+  "description": "互助曝光广告联盟 · Cloudflare Workers 后端",
+  "main": "src/index.js",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev --local",
+    "deploy": "wrangler deploy",
+    "db:init": "wrangler d1 execute ad-alliance-db --file=./schema.sql --remote",
+    "db:init:local": "wrangler d1 execute ad-alliance-db --file=./schema.sql --local"
+  },
+  "devDependencies": {
+    "wrangler": "^3.0.0"
+  }
+}
