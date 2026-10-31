@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script defer src="https://umami.880200.xyz/script.js" data-website-id="36148f3f-9447-4962-807f-e8385d951c1f"></script>
+<title>广告联盟 · 站点会员申请注册</title>
+<!-- join.html v7：密码必填 + 仅密码登录 + 点击驱动提交（防刷新） -->
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; background:#f4f5f7; color:#202124; font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  .wrap { max-width:680px; margin:0 auto; padding:24px 16px 60px; }
+  header { text-align:center; padding:28px 0 8px; }
+  header h1 { font-size:24px; margin:0 0 6px; }
+  header p { color:#5f6368; font-size:14px; margin:0; }
+  .card { background:#fff; border-radius:12px; box-shadow:0 1px 3px rgba(60,64,67,.15); padding:6px; margin-top:20px; }
+  .card h2 { font-size:16px; margin:0 0 14px; border-bottom:1px solid #e8eaed; padding-bottom:10px; }
+  .field { margin-bottom:14px; }
+  .field label { display:block; font-size:13px; color:#3c4043; margin-bottom:6px; }
+  .field label small { color:#80868b; font-weight:normal; }
+  .field input { width:100%; padding:10px 12px; border:1px solid #dadce0; border-radius:8px; font-size:14px; }
+  .field input:focus { outline:none; border-color:#1a73e8; box-shadow:0 0 0 2px rgba(26,115,232,.15); }
+  .hint { font-size:12px; color:#80868b; margin-top:4px; }
+  button[type=submit] { width:100%; padding:12px; background:#1a73e8; color:#fff; border:none; border-radius:8px; font-size:15px; cursor:pointer; margin-top:6px; }
+  button[type=submit]:disabled { opacity:.5; cursor:not-allowed; }
+  .result { display:none; margin-top:16px; background:#e6f4ea; border:1px solid #ceead6; border-radius:10px; padding:16px; }
+  .result.err { background:#fce8e6; border-color:#f6c1bf; }
+  .result h3 { margin:0 0 10px; font-size:15px; }
+  .result .key { background:#fff; border-radius:6px; padding:8px 10px; font-family:monospace; font-size:13px; word-break:break-all; margin:6px 0; border:1px solid #dadce0; }
+  .result .warn { font-size:12px; color:#b06000; margin-top:6px; }
+  .size-preview { display:flex; gap:12px; align-items:center; margin:6px 0 10px; }
+  .size-preview .box { border:1px dashed #dadce0; border-radius:4px; background:#f8f9fa; display:flex; align-items:center; justify-content:center; color:#80868b; font-size:11px; }
+  .size-preview .b1 { width:100px; height:100px; }
+  .size-preview .b2 { width:300px; height:100px; }
+  .nav { text-align:center; margin-top:16px; font-size:13px; }
+  .nav a { color:#1a73e8; text-decoration:none; margin:0 10px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>加入互助广告联盟</h1>
+    <p>你的站点既是广告主（展示你的广告），也是发布商（展示联盟内其他站点广告），互相导流。</p>
+  </header>
+
+  <!-- 实时预览 -->
+  <div class="card">
+    <h2>双栏广告位预览</h2>
+   <div id="livePreview" style="display:flex;gap:2px;height:100px;width:402px;margin:0 auto;">
+      <div style="flex:0 0 100px;width:100px;height:100px;background:#f1f3f4;border-radius:4px;overflow:hidden;display:flex;align-items:center;justify-content:center">
+        <span style="font-size:11px;color:#999">平台广告<br>100×100</span>
+      </div>
+      <div id="rightPreview" style="flex:1;height:100px;width:300px;background:#f1f3f4;border-radius:4px;overflow:hidden;display:flex;align-items:center;justify-content:center">
+        <span style="font-size:11px;color:#999">你的广告 300×100<br>输入图片地址后实时显示</span>
+      </div>
+    </div>
+    <p class="hint" align="center">左侧由平台统一展示；右侧是你提交的广告，被随机展示给其他会员站点。</p>
+  </div>
+
+  <div class="card">
+    <h2>申请注册</h2>
+    <form id="regForm" novalidate onsubmit="return false;">
+      <div class="field"><label>站点名称 *</label><input id="site_name" required placeholder="例如：我的博客"></div>
+      <div class="field"><label>站点网址 *</label><input id="site_url" required placeholder="https://example.com"></div>
+      <div class="field"><label>联系邮箱 *</label><input id="contact_email" type="email" required placeholder="you@example.com"></div>
+      <div class="field"><label>设置登录密码（≥4 位，必填，用于登录会员后台）</label><input id="password" type="password" required minlength="4" placeholder="设置一个登录密码"></div>
+
+      <h2 style="margin-top:6px">你的广告素材（右侧 300×100，展示给联盟内其他会员）</h2>
+      <div class="field"><label>广告图片地址（建议 300×100）</label><input id="image_url" placeholder="https://.../ad-300x100.png"></div>
+      <div class="field"><label>广告跳转链接</label><input id="target_url" placeholder="https://example.com/landing"></div>
+
+      <button type="button" id="submitBtn">提交申请</button>
+      <p class="hint">提交后站点与广告进入<b>待审核</b>状态，管理员审核通过后即可开始曝光。</p>
+    </form>
+
+    <div class="result" id="result"></div>
+  </div>
+
+<br><div><script src="https://blogunion.880200.xyz/embed.js" data-site-id="3" async defer></script></div>
+
+  <div class="nav">
+    <a href="./admin/index.html">管理后台（管理员）</a>
+    <a href="./member.html">会员自助管理</a>
+    <a href="./demo.html">嵌入演示</a>
+  </div>
+</div>
+
+<script>
+(function () {
+  var API = ''; // 与 API 同域时留空；跨域时填 Worker 域名
+  var form = document.getElementById('regForm');
+  var result = document.getElementById('result');
+  var btn = document.getElementById('submitBtn');
+
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function imgFallback(el) { el.style.display = 'none'; }
+
+  // ---- 实时预览：左侧平台广告 ----
+  (async function () {
+    var left = document.querySelector('#livePreview > div');
+    try {
+      var r = await fetch(API + '/api/platform-ad', { headers: { 'Accept': 'application/json' } });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      var d = await r.json();
+      if (d && d.image_url) {
+        left.innerHTML = '<a href="' + esc(d.target_url || '#') + '" target="_blank" rel="nofollow">' +
+          '<img src="' + esc(d.image_url) + '" style="width:100px;height:100px;object-fit:cover" onerror="imgFallback(this)">' +
+          '</a>';
+      } else {
+        left.innerHTML = '<span style="font-size:11px;color:#999">平台广告 100×100<br>（暂未设置）</span>';
+      }
+    } catch (e) {
+      left.innerHTML = '<span style="font-size:11px;color:#c5221f">平台广告加载失败</span>';
+    }
+  })();
+
+  // ---- 实时预览：右侧会员广告（输入图片地址即显示） ----
+  function renderRightPreview() {
+    var v = document.getElementById('image_url').value.trim();
+    var box = document.getElementById('rightPreview');
+    if (v) {
+      box.innerHTML = '<img src="' + esc(v) + '" style="max-width:100%;max-height:100%;object-fit:contain" onerror="imgFallback(this)">';
+    } else {
+      box.innerHTML = '<span style="font-size:11px;color:#999">你的广告 300×100<br>输入图片地址后实时显示</span>';
+    }
+  }
+  document.getElementById('image_url').addEventListener('input', renderRightPreview);
+
+  // ---- 提交申请（点击驱动，杜绝原生表单刷新） ----
+  btn.addEventListener('click', async function () {
+    var payload = {
+      site_name: document.getElementById('site_name').value.trim(),
+      site_url: document.getElementById('site_url').value.trim(),
+      contact_email: document.getElementById('contact_email').value.trim(),
+      password: document.getElementById('password').value.trim(),
+      image_url: document.getElementById('image_url').value.trim(),
+      target_url: document.getElementById('target_url').value.trim()
+    };
+    if (!payload.site_name || !payload.site_url || !payload.contact_email || !payload.password) {
+      result.className = 'result err'; result.style.display = 'block';
+      result.innerHTML = '<h3>请填写必填项</h3><p>站点名称、站点网址、联系邮箱、登录密码为必填。</p>'; return;
+    }
+    if (payload.password.length < 4) {
+      result.className = 'result err'; result.style.display = 'block';
+      result.innerHTML = '<h3>密码太短</h3><p>登录密码至少 4 位。</p>'; return;
+    }
+    btn.disabled = true; btn.textContent = '提交中…';
+    try {
+      var res = await fetch(API + '/api/register', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+      });
+      var data = await res.json().catch(function () { return {}; });
+      if (!res.ok) throw new Error(data.error || ('HTTP ' + res.status));
+      result.className = 'result'; result.style.display = 'block';
+      var embedCode = '<script src="' + location.origin + '/embed.js" data-site-id="' + data.site_id + '" async defer><\/script>';
+      result.innerHTML =
+        '<h3>申请已提交 ✅</h3>' +
+        '<p>请妥善保存以下信息（不再显示）：</p>' +
+        '<div class="key">站点 ID：' + esc(data.site_id) + '</div>' +
+        '<div class="key">站点密钥 api_key：' + esc(data.api_key) + '</div>' +
+        '<h3 style="margin-top:18px">📋 你的嵌入代码（审核通过后生效）</h3>' +
+        '<p class="hint">把下面这行代码复制粘贴到你网站页面的 <code>&lt;/body&gt;</code> 之前即可：</p>' +
+        '<div class="key" id="embedCode" style="font-family:monospace;font-size:12px;white-space:pre-wrap;word-break:break-all">' + esc(embedCode) + '</div>' +
+        '<button type="button" id="copyEmbedBtn" style="margin-top:8px;padding:8px 16px;background:#1a73e8;color:#fff;border:none;border-radius:6px;cursor:pointer">复制代码</button>' +
+        '<div class="warn">⚠ 站点与广告需管理员审核通过后才能开始曝光。请到「会员自助管理」用<b>站点 ID + 登录密码</b>登录查看进度与数据。</div>';
+      document.getElementById('copyEmbedBtn').addEventListener('click', function () {
+        navigator.clipboard.writeText(embedCode).then(function () { alert('已复制，去粘贴到你的网站吧'); });
+      });
+      document.getElementById('site_name').value = '';
+      document.getElementById('site_url').value = '';
+      document.getElementById('contact_email').value = '';
+      document.getElementById('password').value = '';
+      document.getElementById('image_url').value = '';
+      document.getElementById('target_url').value = '';
+    } catch (err) {
+      result.className = 'result err'; result.style.display = 'block';
+      result.innerHTML = '<h3>提交失败</h3><p>' + esc(err.message) + '</p>';
+    } finally {
+      btn.disabled = false; btn.textContent = '提交申请';
+    }
+  });
+})();
+</script>
+</body>
+</html>

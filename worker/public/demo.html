@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script defer src="https://umami.880200.xyz/script.js" data-website-id="36148f3f-9447-4962-807f-e8385d951c1f"></script>
+<title>广告联盟嵌入演示（双栏广告位）</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 900px; margin: 40px auto; padding: 0 20px; color: #333; }
+  h1 { font-size: 22px; }
+  p.desc { color: #666; font-size: 14px; line-height: 1.7; }
+  .label { font-size: 12px; color: #999; margin: 20px 0 6px; }
+  .demo-box { border: 1px dashed #ddd; border-radius: 8px; padding: 14px; background: #fafafa; display: flex; justify-content: center; min-height: 120px; align-items: center; }
+  .controls { display: flex; gap: 10px; align-items: center; margin: 10px 0; flex-wrap: wrap; }
+  .controls input { padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; width: 100px; }
+  .controls button { padding: 8px 18px; background: #1a73e8; color: #fff; border: none; border-radius: 6px; cursor: pointer; }
+  code { background: #f1f3f4; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+  .code-block { background: #202124; color: #e8eaed; padding: 14px; border-radius: 8px; font-family: monospace; font-size: 13px; white-space: pre-wrap; word-break: break-all; position: relative; }
+  .copy-btn { position: absolute; top: 8px; right: 8px; background: #1a73e8; color: #fff; border: none; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+  .muted { color: #999; font-size: 13px; }
+  hr { border: none; border-top: 1px solid #eee; margin: 32px 0; }
+</style>
+</head>
+<body>
+  <h1>互助广告联盟 · 双栏广告位嵌入演示</h1>
+  <p class="desc">
+    <b>左侧 100×100</b> — 平台自身广告（统一展示平台）；<br>
+    <b>右侧 300×100</b> — 随机展示联盟内其他会员的广告（点击经服务器统计）。
+  </p>
+
+  <div class="label">输入你的站点 ID，实时预览广告效果</div>
+  <div class="controls">
+    <span class="muted">站点 ID：</span>
+    <input type="number" id="siteIdInput" value="3">
+    <button id="renderBtn">渲染预览</button>
+  </div>
+
+  <div class="demo-box" id="previewBox">
+    <span class="muted">输入站点 ID 后点"渲染预览"</span>
+  </div>
+
+  <hr>
+  <div class="label">你的嵌入代码（复制粘贴到你的网站即可）</div>
+  <div class="code-block" id="codeBlock">
+    <button class="copy-btn" id="copyBtn">复制</button>
+    <span id="codeText"></span>
+  </div>
+  <p class="muted" style="margin-top:8px">
+    提示：审核通过后广告才会显示。如果预览空白，说明该站点或广告还在待审核状态。
+  </p>
+
+  <script>
+    var origin = location.origin;
+    function updateCode() {
+      var sid = document.getElementById('siteIdInput').value || '1';
+      var code = '<script src="' + origin + '/embed.js" data-site-id="' + sid + '" async defer><\/script>';
+      document.getElementById('codeText').textContent = code;
+      return code;
+    }
+    document.getElementById('renderBtn').addEventListener('click', function () {
+      var box = document.getElementById('previewBox');
+      box.innerHTML = '';
+      var code = updateCode();
+      var s = document.createElement('script');
+      s.src = origin + '/embed.js';
+      s.dataset.siteId = document.getElementById('siteIdInput').value || '1';
+      box.appendChild(s);
+    });
+    document.getElementById('copyBtn').addEventListener('click', function () {
+      var code = document.getElementById('codeText').textContent;
+      navigator.clipboard.writeText(code).then(function () {
+        document.getElementById('copyBtn').textContent = '已复制';
+        setTimeout(function(){ document.getElementById('copyBtn').textContent = '复制'; }, 1500);
+      });
+    });
+    document.getElementById('siteIdInput').addEventListener('input', updateCode);
+    updateCode();
+  </script>
+
+<br><div><script src="https://blogunion.880200.xyz/embed.js" data-site-id="3" async defer></script></div>
+
+  <hr>
+  <div style="text-align:center;padding:8px 0 24px">
+    <a href="./join.html" style="display:inline-block;padding:12px 28px;background:#1a73e8;color:#fff;border-radius:8px;text-decoration:none;font-weight:600;margin-right:12px">申请加入联盟</a>
+    <a href="./member.html" style="display:inline-block;padding:12px 28px;background:#e8eaed;color:#202124;border-radius:8px;text-decoration:none;font-weight:600">会员自助管理</a>
+  </div>
+</body>
+</html>

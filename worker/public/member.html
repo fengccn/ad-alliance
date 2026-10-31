@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script defer src="https://umami.880200.xyz/script.js" data-website-id="36148f3f-9447-4962-807f-e8385d951c1f"></script>
+<title>广告联盟 · 会员自助管理</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; background:#f4f5f7; color:#202124; font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  .wrap { max-width:760px; margin:0 auto; padding:24px 16px 60px; }
+  header { text-align:center; padding:26px 0 6px; }
+  header h1 { font-size:22px; margin:0 0 6px; }
+  header p { color:#5f6368; font-size:14px; margin:0; }
+  .card { background:#fff; border-radius:12px; box-shadow:0 1px 3px rgba(60,64,67,.15); padding:20px 24px; margin-top:18px; }
+  .card h2 { font-size:16px; margin:0 0 12px; border-bottom:1px solid #e8eaed; padding-bottom:10px; }
+  .row { display:flex; gap:12px; flex-wrap:wrap; }
+  .row .grow { flex:1 1 220px; }
+  .field { margin-bottom:12px; }
+  .field label { display:block; font-size:13px; color:#3c4043; margin-bottom:5px; }
+  .field label small { color:#80868b; font-weight:normal; }
+  .field input { width:100%; padding:9px 12px; border:1px solid #dadce0; border-radius:8px; font-size:14px; }
+  .field input:focus { outline:none; border-color:#1a73e8; }
+  .btn { padding:10px 16px; background:#1a73e8; color:#fff; border:none; border-radius:8px; font-size:14px; cursor:pointer; }
+  .btn:disabled { opacity:.5; cursor:not-allowed; }
+  .stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; }
+  .stat { border:1px solid #e0e0e0; border-radius:10px; padding:14px; }
+  .stat .num { font-size:24px; font-weight:600; }
+  .stat .lbl { font-size:12px; color:#5f6368; margin-top:3px; }
+  .msg { display:none; margin-top:14px; padding:12px 14px; border-radius:8px; font-size:13px; }
+  .msg.ok { background:#e6f4ea; color:#188038; border:1px solid #ceead6; }
+  .msg.err { background:#fce8e6; color:#d93025; border:1px solid #f6c1bf; }
+  .login { max-width:440px; margin:80px auto; background:#fff; border-radius:12px; padding:28px; box-shadow:0 1px 3px rgba(60,64,67,.2); text-align:center; }
+  .login h2 { margin:0 0 6px; font-size:18px; }
+  .login p { color:#5f6368; font-size:13px; margin:0 0 16px; }
+  .login .field { text-align:left; }
+  .login .or { color:#9aa0a6; font-size:12px; margin:6px 0; }
+  .nav { text-align:center; margin-top:16px; font-size:13px; }
+  .nav a { color:#1a73e8; text-decoration:none; margin:0 10px; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th,td { padding:7px 10px; border-bottom:1px solid #e8eaed; text-align:left; }
+  th { color:#5f6368; font-weight:500; background:#fafafa; }
+  .muted { color:#5f6368; }
+  .badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:12px; }
+  .b-active{background:#e6f4ea;color:#188038} .b-pending{background:#fef7e0;color:#b06000}
+  .b-rejected{background:#fce8e6;color:#d93025}
+  .code-block { background:#202124; color:#e8eaed; padding:14px; border-radius:8px; font-family:monospace; font-size:12px; white-space:pre-wrap; word-break:break-all; position:relative; margin-top:10px; }
+  .copy-btn { position:absolute; top:8px; right:8px; background:#1a73e8; color:#fff; border:none; padding:4px 12px; border-radius:4px; cursor:pointer; font-size:12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>会员自助管理</h1>
+    <p>用「站点 ID + 登录密码」登录，查看数据、修改你的广告、设置登录密码。</p>
+  </header>
+
+  <!-- 登录 -->
+  <div class="card" id="loginCard">
+    <h2>登录</h2>
+    <p class="muted" style="margin-top:-4px;text-align:center">使用注册时设置的登录密码</p>
+    <div class="row">
+      <div class="field grow"><label>站点 ID</label><input id="site_id" type="number" placeholder="例如 1"></div>
+      <div class="field grow"><label>登录密码</label><input id="password" type="password" placeholder="注册时设置的密码"></div>
+    </div>
+    <button class="btn" id="loginBtn" style="width:100%">登录</button>
+    <div class="msg" id="loginMsg"></div>
+  </div>
+
+  <!-- 管理面板 -->
+  <div id="panel" style="display:none">
+    <div class="card">
+      <h2>我的站点：<span id="siteName"></span> <span class="muted" style="font-weight:normal">（ID <span id="siteIdShow"></span>）</span>
+        <button class="btn" id="logoutBtn" style="float:right;padding:6px 14px;font-size:13px;background:#d93025;border-radius:6px">退出登录</button>
+      </h2>
+      <div style="clear:both"></div>
+      <div class="stats-grid" id="statsGrid"></div>
+    </div>
+
+    <div class="card">
+      <h2>我的嵌入代码</h2>
+      <p class="muted" style="margin-top:0">把下面这行复制粘贴到你网站页面的 <code>&lt;/body&gt;</code> 之前，站点与广告审核通过后即可展示广告。</p>
+      <div class="code-block" id="embedCodeBlock">
+        <button class="copy-btn" id="embedCopyBtn" type="button">复制</button>
+        <code id="embedCodeText"></code>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>近 7 天每日数据</h2>
+      <table>
+        <thead><tr><th>日期</th><th>曝光（我展示别人）</th><th>点击</th></tr></thead>
+        <tbody id="dailyBody"><tr><td colspan="3" class="muted">加载中…</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>我的广告（右侧 300×100，展示给联盟内其他站点）</h2>
+      <p class="muted" style="margin-top:0">每位会员仅保留一条广告。修改后需管理员<b>重新审核通过</b>才恢复展示。</p>
+      <div id="adStatus" class="msg" style="display:block"></div>
+      <div id="adPreview" style="width:300px;height:100px;max-width:100%;background:#f1f3f4;border:1px dashed #dadce0;border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center;margin:10px 0">
+        <span style="font-size:11px;color:#999">广告图预览 300×100</span>
+      </div>
+      <div class="row">
+        <div class="field grow"><label>广告图片地址（300×100）</label><input id="ad_image_url" placeholder="https://.../ad-300x100.png"></div>
+        <div class="field grow"><label>广告跳转链接</label><input id="ad_target_url" placeholder="https://example.com/landing"></div>
+      </div>
+      <button class="btn" id="adBtn">保存广告（修改后需重新审核）</button>
+      <div class="msg" id="adMsg"></div>
+    </div>
+
+    <div class="card">
+      <h2>修改登录密码</h2>
+      <div class="field"><label>新密码（≥4 位）</label><input id="pw_new" type="password" placeholder="输入新密码"></div>
+      <button class="btn" id="pwBtn">保存新密码</button>
+      <div class="msg" id="pwMsg"></div>
+    </div>
+  </div>
+
+<br><div><script src="https://blogunion.880200.xyz/embed.js" data-site-id="3" async defer></script></div>
+
+  <div class="nav">
+    <a href="./index.html">平台首页</a>
+    <a href="./join.html">申请注册</a>
+    <a href="./demo.html">嵌入演示</a>
+  </div>
+</div>
+
+<script>
+(function () {
+  var API = ''; // 同域留空；跨域填 Worker 域名
+  var token = {
+    site_id: localStorage.getItem('ad_member_id'),
+    api_key: localStorage.getItem('ad_member_key')
+  };
+
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function showMsg(el, ok, text) { el.className = 'msg ' + (ok ? 'ok' : 'err'); el.style.display = 'block'; el.textContent = text; }
+  function imgFallback(el) { el.style.display = 'none'; }
+
+  // ---- 广告图实时预览 ----
+  function renderAdPreview() {
+    var v = document.getElementById('ad_image_url').value.trim();
+    var box = document.getElementById('adPreview');
+    if (v) {
+      box.innerHTML = '<img src="' + esc(v) + '" style="max-width:100%;max-height:100%;object-fit:contain" onerror="imgFallback(this)">';
+    } else {
+      box.innerHTML = '<span style="font-size:11px;color:#999">广告图预览 300×100</span>';
+    }
+  }
+  document.getElementById('ad_image_url').addEventListener('input', renderAdPreview);
+
+  // ---- 我的嵌入代码 ----
+  function renderEmbedCode() {
+    var code = '<script src="' + location.origin + '/embed.js" data-site-id="' + token.site_id + '" async defer><\/script>';
+    document.getElementById('embedCodeText').textContent = code;
+  }
+  document.getElementById('embedCopyBtn').addEventListener('click', function () {
+    var t = this;
+    navigator.clipboard.writeText(document.getElementById('embedCodeText').textContent).then(function () {
+      t.textContent = '已复制';
+      setTimeout(function () { t.textContent = '复制'; }, 1500);
+    });
+  });
+
+  async function api(path, opts) {
+    var res = await fetch(API + path, Object.assign({ headers: { 'Content-Type': 'application/json' } }, opts));
+    var data = await res.json().catch(function () { return {}; });
+    if (!res.ok) throw new Error(data.error || ('HTTP ' + res.status));
+    return data;
+  }
+
+  // ---- 登录：仅用密码 ----
+  function fillLogin() {
+    if (token.site_id) document.getElementById('site_id').value = token.site_id;
+  }
+  document.getElementById('loginBtn').addEventListener('click', async function () {
+    var id = document.getElementById('site_id').value.trim();
+    var pwd = document.getElementById('password').value.trim();
+    var msgEl = document.getElementById('loginMsg');
+    if (!id) return showMsg(msgEl, false, '请填写站点 ID');
+    if (!pwd) return showMsg(msgEl, false, '请填写登录密码');
+    try {
+      var r = await api('/api/member/login', { method: 'POST', body: JSON.stringify({ site_id: Number(id), password: pwd }) });
+      token = { site_id: id, api_key: r.api_key };
+      localStorage.setItem('ad_member_id', id);
+      localStorage.setItem('ad_member_key', r.api_key);
+      document.getElementById('password').value = '';
+      await loadAll();
+    } catch (e) { showMsg(msgEl, false, '登录失败：' + e.message); }
+  });
+  if (token.site_id && token.api_key) { fillLogin(); loadAll(); }
+
+  // ---- 退出登录：清除本地凭证，回到登录页 ----
+  document.getElementById('logoutBtn').addEventListener('click', function () {
+    localStorage.removeItem('ad_member_id');
+    localStorage.removeItem('ad_member_key');
+    token = { site_id: '', api_key: '' };
+    document.getElementById('loginCard').style.display = 'block';
+    document.getElementById('panel').style.display = 'none';
+    document.getElementById('site_id').value = '';
+    document.getElementById('password').value = '';
+    document.getElementById('siteName').textContent = '';
+    showMsg(document.getElementById('loginMsg'), true, '已退出登录。');
+  });
+
+  // ---- 加载全部 ----
+  async function loadAll() {
+    var panel = document.getElementById('panel');
+    var loginCard = document.getElementById('loginCard');
+    try {
+      var st = await api('/api/stats?site_id=' + encodeURIComponent(token.site_id) + '&api_key=' + encodeURIComponent(token.api_key));
+      document.getElementById('siteName').textContent = st.site_name;
+      document.getElementById('siteIdShow').textContent = token.site_id;
+      document.getElementById('statsGrid').innerHTML =
+        '<div class="stat"><div class="num">' + st.as_publisher.impressions.toLocaleString() + '</div><div class="lbl">我展示的曝光</div></div>' +
+        '<div class="stat"><div class="num">' + st.as_publisher.clicks.toLocaleString() + '</div><div class="lbl">我展示的点击</div></div>' +
+        '<div class="stat"><div class="num">' + st.as_publisher.ctr + '%</div><div class="lbl">我展示的点击率</div></div>' +
+        '<div class="stat"><div class="num">' + st.as_advertiser.impressions.toLocaleString() + '</div><div class="lbl">我的广告曝光</div></div>' +
+        '<div class="stat"><div class="num">' + st.as_advertiser.clicks.toLocaleString() + '</div><div class="lbl">我的广告点击</div></div>';
+      var daily = st.daily.slice(-7).reverse();
+      document.getElementById('dailyBody').innerHTML = daily.map(function (d) {
+        return '<tr><td>' + esc(d.date) + '</td><td>' + d.impressions + '</td><td>' + d.clicks + '</td></tr>';
+      }).join('');
+      // 回显当前广告
+      if (st.current_ad) {
+        document.getElementById('ad_image_url').value = st.current_ad.image_url;
+        document.getElementById('ad_target_url').value = st.current_ad.target_url;
+        renderAdPreview();
+        var as = document.getElementById('adStatus');
+        as.className = 'msg ' + (st.current_ad.status === 'active' ? 'ok' : 'err');
+        as.style.display = 'block';
+        as.innerHTML = '当前广告状态：' + (st.current_ad.status === 'active' ? '已上线（展示中）' : (st.current_ad.status === 'rejected' ? '被驳回，请修改后重新提交' : '待审核'));
+      } else {
+        document.getElementById('adStatus').className = 'msg'; document.getElementById('adStatus').style.display = 'block';
+        document.getElementById('adStatus').textContent = '你还没有广告，填写并保存后等待审核。';
+      }
+      loginCard.style.display = 'none';
+      panel.style.display = 'block';
+      renderEmbedCode();
+    } catch (e) {
+      loginCard.style.display = 'block'; panel.style.display = 'none';
+      showMsg(document.getElementById('loginMsg'), false, '登录失败：' + e.message);
+    }
+  }
+
+  // ---- 保存/修改唯一广告（自动触发重新审核） ----
+  document.getElementById('adBtn').addEventListener('click', async function () {
+    var b = this; b.disabled = true;
+    try {
+      await api('/api/ads', { method: 'POST', body: JSON.stringify({
+        site_id: Number(token.site_id), api_key: token.api_key,
+        image_url: document.getElementById('ad_image_url').value.trim(),
+        target_url: document.getElementById('ad_target_url').value.trim()
+      }) });
+      showMsg(document.getElementById('adMsg'), true, '广告已保存，等待管理员重新审核通过后恢复展示。');
+      loadAll();
+    } catch (e) { showMsg(document.getElementById('adMsg'), false, '保存失败：' + e.message); }
+    finally { b.disabled = false; }
+  });
+
+  // ---- 修改登录密码（已登录，用密钥鉴权） ----
+  document.getElementById('pwBtn').addEventListener('click', async function () {
+    var b = this; b.disabled = true;
+    try {
+      await api('/api/member/set-password', { method: 'POST', body: JSON.stringify({
+        site_id: Number(token.site_id), api_key: token.api_key,
+        new_password: document.getElementById('pw_new').value.trim()
+      }) });
+      showMsg(document.getElementById('pwMsg'), true, '登录密码已更新，下次请用新密码登录。');
+      document.getElementById('pw_new').value = '';
+    } catch (e) { showMsg(document.getElementById('pwMsg'), false, '保存失败：' + e.message); }
+    finally { b.disabled = false; }
+  });
+})();
+</script>
+</body>
+</html>
