@@ -28,7 +28,7 @@
     <b>右侧 300×100</b> — 随机展示联盟内其他会员的广告（点击经服务器统计）。
   </p>
 
-  <div class="label">输入你的站点 ID，实时预览广告效果</div>
+  <div class="label">输入站点 ID，实时预览广告效果</div>
   <div class="controls">
     <span class="muted">站点 ID：</span>
     <input type="number" id="siteIdInput" value="3">
@@ -40,7 +40,7 @@
   </div>
 
   <hr>
-  <div class="label">你的嵌入代码（复制粘贴到你的网站即可）</div>
+  <div class="label">演示会员ID的嵌入代码（复制粘贴到你的网站即可）</div>
   <div class="code-block" id="codeBlock">
     <button class="copy-btn" id="copyBtn">复制</button>
     <span id="codeText"></span>
@@ -49,40 +49,48 @@
     提示：审核通过后广告才会显示。如果预览空白，说明该站点或广告还在待审核状态。
   </p>
 
-  <script>
-    var origin = location.origin;
-    function updateCode() {
-      var sid = document.getElementById('siteIdInput').value || '1';
-      var code = '<script src="' + origin + '/embed.js" data-site-id="' + sid + '" async defer><\/script>';
-      document.getElementById('codeText').textContent = code;
-      return code;
-    }
-    document.getElementById('renderBtn').addEventListener('click', function () {
-      var box = document.getElementById('previewBox');
-      box.innerHTML = '';
-      var code = updateCode();
-      var s = document.createElement('script');
-      s.src = origin + '/embed.js';
-      s.dataset.siteId = document.getElementById('siteIdInput').value || '1';
-      box.appendChild(s);
-    });
-    document.getElementById('copyBtn').addEventListener('click', function () {
-      var code = document.getElementById('codeText').textContent;
-      navigator.clipboard.writeText(code).then(function () {
-        document.getElementById('copyBtn').textContent = '已复制';
-        setTimeout(function(){ document.getElementById('copyBtn').textContent = '复制'; }, 1500);
-      });
-    });
-    document.getElementById('siteIdInput').addEventListener('input', updateCode);
-    updateCode();
-  </script>
+<script>
+  var origin = location.origin;
 
-<br><div><script src="https://blogunion.880200.xyz/embed.js" data-site-id="3" async defer></script></div>
+  function updateCode() {
+    var sid = document.getElementById('siteIdInput').value || '1';
+    var code = '<script src="' + origin + '/embed.js" data-site-id="' + sid + '" async defer><\/script>';
+    document.getElementById('codeText').textContent = code;
+    return code;
+  }
+
+  function renderPreview() {
+    var box = document.getElementById('previewBox');
+    box.innerHTML = '';
+    updateCode();
+    var s = document.createElement('script');
+    s.src = origin + '/embed.js';
+    s.dataset.siteId = document.getElementById('siteIdInput').value || '1';
+    box.appendChild(s);
+  }
+
+  document.getElementById('renderBtn').addEventListener('click', renderPreview);
+
+  document.getElementById('copyBtn').addEventListener('click', function () {
+    var code = document.getElementById('codeText').textContent;
+    navigator.clipboard.writeText(code).then(function () {
+      document.getElementById('copyBtn').textContent = '已复制';
+      setTimeout(function(){ document.getElementById('copyBtn').textContent = '复制'; }, 1500);
+    });
+  });
+
+  document.getElementById('siteIdInput').addEventListener('input', updateCode);
+  updateCode();
+
+  // 页面加载时用默认 ID 渲染一次预览
+  renderPreview();
+</script>
 
   <hr>
   <div style="text-align:center;padding:8px 0 24px">
     <a href="./join.html" style="display:inline-block;padding:12px 28px;background:#1a73e8;color:#fff;border-radius:8px;text-decoration:none;font-weight:600;margin-right:12px">申请加入联盟</a>
     <a href="./member.html" style="display:inline-block;padding:12px 28px;background:#e8eaed;color:#202124;border-radius:8px;text-decoration:none;font-weight:600">会员自助管理</a>
   </div>
+
 </body>
 </html>
