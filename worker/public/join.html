@@ -76,6 +76,8 @@
             <canvas id="adCanvas" width="600" height="200" style="max-width:100%;border-radius:6px;border:1px solid #dadce0"></canvas>
             <div style="margin-top:8px;font-size:12px;color:#5f6368">背景色：</div>
             <div style="margin-top:4px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap" id="bgPicker"></div>
+            <div style="margin-top:8px;font-size:12px;color:#5f6368">背景样式：</div>
+            <div style="margin-top:4px;display:flex;gap:6px;justify-content:center;flex-wrap:wrap" id="stylePicker"></div>
             <div style="margin-top:8px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;align-items:center">
               <label style="font-size:12px;color:#5f6368">Logo（可选）：</label>
               <input type="file" id="adLogoFile" accept="image/*" style="font-size:12px">
@@ -182,6 +184,86 @@
     });
   }
 
+  // 背景样式：渐变 / 斜纹 / 网格 / 圆点 / 光斑 / 横条
+  var bgStyles = [
+    { id: 'gradient', label: '渐变' },
+    { id: 'stripes', label: '斜纹' },
+    { id: 'grid', label: '网格' },
+    { id: 'dots', label: '圆点' },
+    { id: 'glow', label: '光斑' },
+    { id: 'bars', label: '横条' }
+  ];
+  var currentStyle = 'gradient';   // 当前背景样式
+
+  // 渲染背景样式选择块
+  function renderStylePicker() {
+    var picker = document.getElementById('stylePicker');
+    picker.innerHTML = '';
+    bgStyles.forEach(function (st) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = st.label;
+      b.style.cssText = 'padding:6px 12px;border-radius:6px;cursor:pointer;font-size:13px;' +
+        'border:1px solid #dadce0;background:' + (st.id === currentStyle ? '#1a73e8' : '#fff') +
+        ';color:' + (st.id === currentStyle ? '#fff' : '#202124');
+      b.addEventListener('click', function () {
+        currentStyle = st.id;
+        renderStylePicker();
+        drawAd();
+      });
+      picker.appendChild(b);
+    });
+  }
+
+  // 绘制背景：先用所选配色渐变打底，再叠加纹理样式
+  function paintBackground(ctx, W, H, bg) {
+    var g = ctx.createLinearGradient(0, 0, W, H);
+    g.addColorStop(0, bg.c1);
+    g.addColorStop(1, bg.c2);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+
+    if (currentStyle === 'gradient') { return; }
+
+    if (currentStyle === 'stripes') {
+      ctx.strokeStyle = 'rgba(255,255,255,0.16)';
+      ctx.lineWidth = 18;
+      ctx.beginPath();
+      for (var x = -H; x < W + H; x += 34) { ctx.moveTo(x, H); ctx.lineTo(x + H, 0); }
+      ctx.stroke();
+    } else if (currentStyle === 'grid') {
+      ctx.strokeStyle = 'rgba(255,255,255,0.13)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (var gx = 0; gx <= W; gx += 40) { ctx.moveTo(gx + 0.5, 0); ctx.lineTo(gx + 0.5, H); }
+      for (var gy = 0; gy <= H; gy += 40) { ctx.moveTo(0, gy + 0.5); ctx.lineTo(W, gy + 0.5); }
+      ctx.stroke();
+    } else if (currentStyle === 'dots') {
+      ctx.fillStyle = 'rgba(255,255,255,0.18)';
+      for (var dy = 24; dy < H; dy += 30) {
+        for (var dx = 24; dx < W; dx += 30) {
+          ctx.beginPath(); ctx.arc(dx, dy, 6, 0, Math.PI * 2); ctx.fill();
+        }
+      }
+    } else if (currentStyle === 'glow') {
+      var spots = [[90, 46, 95], [W - 60, 70, 130], [W / 2, 24, 70]];
+      spots.forEach(function (sp) {
+        var rg = ctx.createRadialGradient(sp[0], sp[1], 0, sp[0], sp[1], sp[2]);
+        rg.addColorStop(0, 'rgba(255,255,255,0.35)');
+        rg.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.fillStyle = rg;
+        ctx.beginPath(); ctx.arc(sp[0], sp[1], sp[2], 0, Math.PI * 2); ctx.fill();
+      });
+    } else if (currentStyle === 'bars') {
+      ctx.fillStyle = 'rgba(255,255,255,0.12)';
+      ctx.fillRect(0, 0, W, 12);
+      ctx.fillStyle = 'rgba(255,255,255,0.07)';
+      ctx.fillRect(0, 40, W, 3);
+      ctx.fillStyle = 'rgba(0,0,0,0.14)';
+      ctx.fillRect(0, H - 12, W, 12);
+    }
+  }
+
   function drawAd() {
     var name = document.getElementById('site_name').value.trim();
     var url = document.getElementById('site_url').value.trim();
@@ -190,11 +272,7 @@
     var ctx = canvas.getContext('2d');
     var W = 600, H = 200;
     var bg = bgOptions[currentBg];
-    // 背景：渐变
-    var g = ctx.createLinearGradient(0, 0, W, H);
-    g.addColorStop(0, bg.c1);
-    g.addColorStop(1, bg.c2);
-    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    paintBackground(ctx, W, H, bg);
     // 左侧强调色条
     ctx.fillStyle = 'rgba(255,255,255,0.14)'; ctx.fillRect(0, 0, 12, H);
 
@@ -248,6 +326,7 @@
     if (drawAd()) {
       document.getElementById('genArea').style.display = 'block';
       renderBgPicker();
+      renderStylePicker();
     }
   });
   document.getElementById('regenerateAdBtn').addEventListener('click', function () { drawAd(); });
