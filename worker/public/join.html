@@ -67,6 +67,29 @@
 
       <h2 style="margin-top:6px">你的广告素材（右侧 300×100，展示给联盟内其他会员）</h2>
       <div class="field"><label>广告图片地址（建议 300×100）</label><input id="image_url" placeholder="https://.../ad-300x100.png"></div>
+
+      <div class="field" style="border-top:1px dashed #e8eaed;padding-top:12px">
+        <label>没有现成广告图？一键生成临时图 <small>（纯前端绘制，600×200 高清，退出页面自动失效）</small></label>
+        <button type="button" id="genAdBtn" style="width:100%;padding:10px 12px;background:#188038;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer">用「站点名称 + 网址」自动生成一张 600×200 广告图</button>
+        <div id="genArea" style="display:none;margin-top:10px">
+          <div style="text-align:center;padding:10px;background:#f8f9fa;border-radius:8px">
+            <canvas id="adCanvas" width="600" height="200" style="max-width:100%;border-radius:6px;border:1px solid #dadce0"></canvas>
+            <div style="margin-top:8px;font-size:12px;color:#5f6368">背景色：</div>
+            <div style="margin-top:4px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap" id="bgPicker"></div>
+            <div style="margin-top:8px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;align-items:center">
+              <label style="font-size:12px;color:#5f6368">Logo（可选）：</label>
+              <input type="file" id="adLogoFile" accept="image/*" style="font-size:12px">
+              <button type="button" id="clearLogoBtn" style="padding:6px 12px;background:#e8eaed;color:#202124;border:none;border-radius:6px;cursor:pointer">清空 Logo</button>
+            </div>
+            <div style="margin-top:8px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+              <button type="button" id="downloadAdBtn" style="padding:8px 16px;background:#1a73e8;color:#fff;border:none;border-radius:6px;cursor:pointer">下载图片</button>
+              <button type="button" id="regenerateAdBtn" style="padding:8px 16px;background:#e8eaed;color:#202124;border:none;border-radius:6px;cursor:pointer">重新生成</button>
+            </div>
+          </div>
+          <p class="hint">这是<b>临时生成</b>的广告图（600×200 高清），仅在你当前页面有效，<b>刷新或退出页面后失效</b>。请点击「下载图片」保存到本地，再上传到你自己的博客或图床，把得到的图片地址填到上面的「广告图片地址」栏，审核通过后即可展示。</p>
+        </div>
+      </div>
+
       <div class="field"><label>广告跳转链接</label><input id="target_url" placeholder="https://example.com/landing"></div>
 
       <button type="button" id="submitBtn">提交申请</button>
@@ -126,6 +149,133 @@
     }
   }
   document.getElementById('image_url').addEventListener('input', renderRightPreview);
+
+  // ---- 一键生成临时广告图（纯前端 Canvas，600×200 高清，退出页面自动失效）----
+  var bgOptions = [
+    { label: '蓝', c1: '#1a73e8', c2: '#3aa0ff' },
+    { label: '青', c1: '#0f766e', c2: '#14b8a6' },
+    { label: '紫', c1: '#6d28d9', c2: '#8b5cf6' },
+    { label: '橙', c1: '#ea580c', c2: '#fb923c' },
+    { label: '红', c1: '#dc2626', c2: '#f87171' },
+    { label: '墨黑', c1: '#111827', c2: '#374151' }
+  ];
+  var currentBg = 0;        // 当前背景配色索引
+  var adLogoImg = null;     // 上传的 Logo 图片对象（无则用占位圆）
+
+  // 渲染背景色选择块
+  function renderBgPicker() {
+    var picker = document.getElementById('bgPicker');
+    picker.innerHTML = '';
+    bgOptions.forEach(function (opt, i) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.style.cssText = 'width:34px;height:34px;border-radius:8px;cursor:pointer;border:' +
+        (i === currentBg ? '3px solid #202124' : '2px solid #dadce0') +
+        ';background:linear-gradient(135deg,' + opt.c1 + ',' + opt.c2 + ')';
+      b.title = opt.label;
+      b.addEventListener('click', function () {
+        currentBg = i;
+        renderBgPicker();
+        drawAd();
+      });
+      picker.appendChild(b);
+    });
+  }
+
+  function drawAd() {
+    var name = document.getElementById('site_name').value.trim();
+    var url = document.getElementById('site_url').value.trim();
+    if (!name) { alert('请先填写「站点名称」再生成。'); return false; }
+    var canvas = document.getElementById('adCanvas');
+    var ctx = canvas.getContext('2d');
+    var W = 600, H = 200;
+    var bg = bgOptions[currentBg];
+    // 背景：渐变
+    var g = ctx.createLinearGradient(0, 0, W, H);
+    g.addColorStop(0, bg.c1);
+    g.addColorStop(1, bg.c2);
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    // 左侧强调色条
+    ctx.fillStyle = 'rgba(255,255,255,0.14)'; ctx.fillRect(0, 0, 12, H);
+
+    // Logo（上传则绘制图片；未上传则绘制占位圆，内含站点名首字符）
+    if (adLogoImg) {
+      var lw = adLogoImg.width, lh = adLogoImg.height;
+      var maxH = 76, maxW = 112;
+      var s = Math.min(maxH / lh, maxW / lw, 1);
+      var dw = lw * s, dh = lh * s;
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(46, H / 2, 42, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.drawImage(adLogoImg, 46 - dw / 2, H / 2 - dh / 2, dw, dh);
+      ctx.restore();
+    } else {
+      ctx.fillStyle = 'rgba(255,255,255,0.18)';
+      ctx.beginPath(); ctx.arc(46, H / 2, 42, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 34px sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(name.charAt(0) || '博', 46, H / 2);
+    }
+
+    // 站点名称（居中、超长自动省略）
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 40px sans-serif';
+    ctx.fillText(fitText(ctx, name, W - 60, 40), W / 2, H / 2 - 24);
+    // 域名（取主机名）
+    var host = '';
+    if (url) { try { host = new URL(url).host; } catch (e) { host = url; } }
+    if (host) {
+      ctx.fillStyle = 'rgba(255,255,255,0.88)';
+      ctx.font = '20px sans-serif';
+      ctx.fillText(fitText(ctx, host, W - 60, 20), W / 2, H / 2 + 22);
+    }
+    // 同步到右侧 300×100 预览框（比例 3:1 一致，不变形）
+    var right = document.getElementById('rightPreview');
+    right.innerHTML = '<img src="' + canvas.toDataURL('image/png') + '" style="width:100%;height:100%;object-fit:cover;display:block">';
+    return true;
+  }
+  function fitText(ctx, text, maxW, baseSize) {
+    ctx.font = 'bold ' + baseSize + 'px sans-serif';
+    if (ctx.measureText(text).width <= maxW) return text;
+    var out = text;
+    while (out.length > 1 && ctx.measureText(out).width > maxW) { out = out.slice(0, -1); }
+    return out + '…';
+  }
+  document.getElementById('genAdBtn').addEventListener('click', function () {
+    if (drawAd()) {
+      document.getElementById('genArea').style.display = 'block';
+      renderBgPicker();
+    }
+  });
+  document.getElementById('regenerateAdBtn').addEventListener('click', function () { drawAd(); });
+  document.getElementById('downloadAdBtn').addEventListener('click', function () {
+    var canvas = document.getElementById('adCanvas');
+    var a = document.createElement('a');
+    var name = (document.getElementById('site_name').value.trim() || 'site') + '-ad-600x200.png';
+    a.href = canvas.toDataURL('image/png');
+    a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+  });
+  // Logo 上传与清空
+  document.getElementById('adLogoFile').addEventListener('change', function () {
+    var file = this.files && this.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function (e) {
+      var img = new Image();
+      img.onload = function () { adLogoImg = img; drawAd(); };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+  document.getElementById('clearLogoBtn').addEventListener('click', function () {
+    adLogoImg = null;
+    document.getElementById('adLogoFile').value = '';
+    drawAd();
+  });
 
   // ---- 提交申请（点击驱动，杜绝原生表单刷新） ----
   btn.addEventListener('click', async function () {
