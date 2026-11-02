@@ -154,16 +154,23 @@
       if (!res.ok) throw new Error(data.error || ('HTTP ' + res.status));
       result.className = 'result'; result.style.display = 'block';
       var embedCode = '<script src="' + location.origin + '/embed.js" data-site-id="' + data.site_id + '" async defer><\/script>';
+      var iframeCode = '<iframe src="' + location.origin + '/embed.html?site_id=' + data.site_id + '" width="402" height="100" frameborder="0" scrolling="no" style="border:0;display:block;margin:10px auto;max-width:100%"><\/iframe>';
       result.innerHTML =
         '<h3>申请已提交 ✅</h3>' +
         '<p>请妥善保存以下信息（不再显示）：</p>' +
         '<div class="key">站点 ID：' + esc(data.site_id) + '</div>' +
         '<div class="key">站点密钥 api_key：' + esc(data.api_key) + '</div>' +
         '<h3 style="margin-top:18px">📋 你的嵌入代码（审核通过后生效）</h3>' +
-        '<p class="hint">把下面这行代码复制粘贴到你网站页面的 <code>&lt;/body&gt;</code> 之前即可：</p>' +
+        '<p class="hint"><b>方式一（推荐 · 纯 HTML，无外部 JS，隔离运行）：</b>复制下面这行 <code>&lt;iframe&gt;</code>，贴到你网站想放广告的位置（<code>&lt;/body&gt;</code> 前或任意容器内均可）。</p>' +
+        '<div class="key" id="iframeCode" style="font-family:monospace;font-size:12px;white-space:pre-wrap;word-break:break-all">' + esc(iframeCode) + '</div>' +
+        '<button type="button" id="copyIframeBtn" style="margin-top:8px;padding:8px 16px;background:#1a73e8;color:#fff;border:none;border-radius:6px;cursor:pointer">复制 iframe 代码</button>' +
+        '<p class="hint" style="margin-top:14px"><b>方式二（进阶 · JS 外链）：</b>更灵活的脚本方式，复制这行。</p>' +
         '<div class="key" id="embedCode" style="font-family:monospace;font-size:12px;white-space:pre-wrap;word-break:break-all">' + esc(embedCode) + '</div>' +
-        '<button type="button" id="copyEmbedBtn" style="margin-top:8px;padding:8px 16px;background:#1a73e8;color:#fff;border:none;border-radius:6px;cursor:pointer">复制代码</button>' +
+        '<button type="button" id="copyEmbedBtn" style="margin-top:8px;padding:8px 16px;background:#1a73e8;color:#fff;border:none;border-radius:6px;cursor:pointer">复制脚本代码</button>' +
         '<div class="warn">⚠ 站点与广告需管理员审核通过后才能开始曝光。请到「会员自助管理」用<b>站点 ID + 登录密码</b>登录查看进度与数据。</div>';
+      document.getElementById('copyIframeBtn').addEventListener('click', function () {
+        navigator.clipboard.writeText(iframeCode).then(function () { alert('已复制 iframe 代码，去粘贴到你的网站吧'); });
+      });
       document.getElementById('copyEmbedBtn').addEventListener('click', function () {
         navigator.clipboard.writeText(embedCode).then(function () { alert('已复制，去粘贴到你的网站吧'); });
       });

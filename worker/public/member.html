@@ -79,7 +79,13 @@
 
     <div class="card">
       <h2>我的嵌入代码</h2>
-      <p class="muted" style="margin-top:0">把下面这行复制粘贴到你网站页面的 <code>&lt;/body&gt;</code> 之前，站点与广告审核通过后即可展示广告。</p>
+      <p class="muted" style="margin-top:0">站点与广告审核通过后即可展示广告。两种方式任选其一：</p>
+      <p class="muted" style="margin:6px 0 4px"><b>方式一（推荐 · 纯 HTML，无外部 JS，隔离运行）：</b>复制下面 iframe，贴到想放广告的位置。</p>
+      <div class="code-block" id="iframeCodeBlock">
+        <button class="copy-btn" id="iframeCopyBtn" type="button">复制</button>
+        <code id="iframeCodeText"></code>
+      </div>
+      <p class="muted" style="margin:10px 0 4px"><b>方式二（进阶 · JS 外链）：</b>复制下面脚本，放到 <code>&lt;/body&gt;</code> 之前。</p>
       <div class="code-block" id="embedCodeBlock">
         <button class="copy-btn" id="embedCopyBtn" type="button">复制</button>
         <code id="embedCodeText"></code>
@@ -151,14 +157,23 @@
   }
   document.getElementById('ad_image_url').addEventListener('input', renderAdPreview);
 
-  // ---- 我的嵌入代码 ----
+  // ---- 我的嵌入代码（两种方式）----
   function renderEmbedCode() {
     var code = '<script src="' + location.origin + '/embed.js" data-site-id="' + token.site_id + '" async defer><\/script>';
+    var iframeCode = '<iframe src="' + location.origin + '/embed.html?site_id=' + token.site_id + '" width="402" height="100" frameborder="0" scrolling="no" style="border:0;display:block;margin:10px auto;max-width:100%"><\/iframe>';
     document.getElementById('embedCodeText').textContent = code;
+    document.getElementById('iframeCodeText').textContent = iframeCode;
   }
   document.getElementById('embedCopyBtn').addEventListener('click', function () {
     var t = this;
     navigator.clipboard.writeText(document.getElementById('embedCodeText').textContent).then(function () {
+      t.textContent = '已复制';
+      setTimeout(function () { t.textContent = '复制'; }, 1500);
+    });
+  });
+  document.getElementById('iframeCopyBtn').addEventListener('click', function () {
+    var t = this;
+    navigator.clipboard.writeText(document.getElementById('iframeCodeText').textContent).then(function () {
       t.textContent = '已复制';
       setTimeout(function () { t.textContent = '复制'; }, 1500);
     });

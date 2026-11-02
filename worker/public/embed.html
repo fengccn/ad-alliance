@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>博盟广告位</title>
+<style>
+  html, body { margin: 0; padding: 0; background: transparent; }
+  #aa-wrap {
+    display: flex; align-items: stretch; gap: 2px;
+    width: 402px; max-width: 100%; height: 100px;
+    overflow: hidden; box-sizing: border-box;
+  }
+  #aa-left  { flex: 0 0 100px; width: 100px; height: 100px; overflow: hidden; background: #f1f3f4; }
+  #aa-right { flex: 1 1 auto;  min-width: 0; height: 100px; overflow: hidden; background: #f1f3f4; }
+  #aa-wrap a  { display: block; width: 100%; height: 100%; text-decoration: none; }
+  #aa-wrap img{ display: block; width: 100%; height: 100%; object-fit: cover; border: 0; }
+  #aa-empty   { display: flex; width: 100%; height: 100%; align-items: center; justify-content: center;
+                font-size: 11px; color: #999; text-align: center; line-height: 1.5; }
+</style>
+</head>
+<body>
+<!-- 双栏广告位：左 100x100 自身广告 + 右 300x100 伙伴广告 -->
+<div id="aa-wrap" style="display:none;">
+  <div id="aa-left"></div>
+  <div id="aa-right"></div>
+</div>
+
+<script>
+/* 博盟 iframe 广告位 —— 纯 HTML 嵌入（无外部 JS，隔离运行）。
+ * 访问方式：/embed.html?site_id=你的站点ID
+ * 参与站点嵌入（纯 HTML，无 <script>）：
+ *   <iframe src="https://blogunion.880200.xyz/embed.html?site_id=你的站点ID"
+ *           width="402" height="100" frameborder="0" scrolling="no"
+ *           style="border:0;display:block;margin:10px auto;max-width:100%"></iframe>
+ */
+(function () {
+  'use strict';
+  var siteId = new URLSearchParams(location.search).get('site_id');
+  var base = location.origin; // 同域，自动取当前页面域名
+  if (!siteId) return;
+
+  var wrap = document.getElementById('aa-wrap');
+  var left = document.getElementById('aa-left');
+  var right = document.getElementById('aa-right');
+
+  function makeAd(href, imgSrc) {
+    var a = document.createElement('a');
+    a.href = href;
+    a.target = '_blank';
+    a.rel = 'noopener nofollow sponsored';
+    a.title = '赞助商广告';
+    var img = document.createElement('img');
+    img.src = imgSrc;
+    img.alt = '广告';
+    img.loading = 'lazy';
+    a.appendChild(img);
+    return a;
+  }
+
+  fetch(base + '/api/embed?site_id=' + encodeURIComponent(siteId) + '&_t=' + Date.now())
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      var hasAny = false;
+
+      // 左侧：平台自身广告（100x100），链接直接指向目标
+      if (d.self && d.self.image_url && d.self.target_url) {
+        left.appendChild(makeAd(d.self.target_url, d.self.image_url));
+        hasAny = true;
+      } else {
+        left.style.display = 'none'; // 无自身广告，右侧占满整行
+      }
+
+      // 右侧：随机伙伴广告（300x100），点击走服务器中转统计
+      if (d.partner && d.partner.image_url && d.partner.click_url) {
+        right.appendChild(makeAd(d.partner.click_url, d.partner.image_url));
+        hasAny = true;
+      } else {
+        right.innerHTML = '<span id="aa-empty">暂无联盟内其他会员广告<br>邀请更多博客加入即可互相曝光</span>';
+        hasAny = true;
+      }
+
+      if (hasAny) wrap.style.display = 'flex';
+    })
+    .catch(function () { /* 请求失败静默隐藏 */ });
+})();
+</script>
+</body>
+</html>

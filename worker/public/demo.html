@@ -28,19 +28,27 @@
     <b>右侧 300×100</b> — 随机展示联盟内其他会员的广告（点击经服务器统计）。
   </p>
 
-  <div class="label">输入站点 ID，实时预览广告效果</div>
+  <div class="label">输入站点 ID，实时预览广告效果（两种嵌入方式）</div>
   <div class="controls">
     <span class="muted">站点 ID：</span>
     <input type="number" id="siteIdInput" value="3">
     <button id="renderBtn">渲染预览</button>
   </div>
 
-  <div class="demo-box" id="previewBox">
-    <span class="muted">输入站点 ID 后点"渲染预览"</span>
+  <div class="label">方式一 · iframe（纯 HTML，无外部 JS，推荐）</div>
+  <div class="demo-box" id="iframePreviewBox">
+    <iframe id="iframeAd" width="402" height="100" frameborder="0" scrolling="no" style="border:0;display:block"></iframe>
+  </div>
+  <div class="code-block" id="iframeCodeBlock">
+    <button class="copy-btn" id="copyIframeBtn">复制</button>
+    <span id="iframeCodeText"></span>
   </div>
 
   <hr>
-  <div class="label">演示会员ID的嵌入代码（对应会员网页代码中使用的相应联盟代码）</div>
+  <div class="label">方式二 · JS 外链（进阶）预览</div>
+  <div class="demo-box" id="previewBox">
+    <span class="muted">输入站点 ID 后点"渲染预览"</span>
+  </div>
   <div class="code-block" id="codeBlock">
     <button class="copy-btn" id="copyBtn">复制</button>
     <span id="codeText"></span>
@@ -52,10 +60,15 @@
 <script>
   var origin = location.origin;
 
+  function buildIframeCode(sid) {
+    return '<iframe src="' + origin + '/embed.html?site_id=' + sid + '" width="402" height="100" frameborder="0" scrolling="no" style="border:0;display:block;margin:10px auto;max-width:100%"></iframe>';
+  }
+
   function updateCode() {
     var sid = document.getElementById('siteIdInput').value || '1';
     var code = '<script src="' + origin + '/embed.js" data-site-id="' + sid + '" async defer><\/script>';
     document.getElementById('codeText').textContent = code;
+    document.getElementById('iframeCodeText').textContent = buildIframeCode(sid);
     return code;
   }
 
@@ -67,6 +80,8 @@
     s.src = origin + '/embed.js';
     s.dataset.siteId = document.getElementById('siteIdInput').value || '1';
     box.appendChild(s);
+    // iframe 预览：刷新 embed.html
+    document.getElementById('iframeAd').src = origin + '/embed.html?site_id=' + (document.getElementById('siteIdInput').value || '1') + '&_t=' + Date.now();
   }
 
   document.getElementById('renderBtn').addEventListener('click', renderPreview);
@@ -79,10 +94,18 @@
     });
   });
 
+  document.getElementById('copyIframeBtn').addEventListener('click', function () {
+    var code = document.getElementById('iframeCodeText').textContent;
+    navigator.clipboard.writeText(code).then(function () {
+      document.getElementById('copyIframeBtn').textContent = '已复制';
+      setTimeout(function(){ document.getElementById('copyIframeBtn').textContent = '复制'; }, 1500);
+    });
+  });
+
   document.getElementById('siteIdInput').addEventListener('input', updateCode);
   updateCode();
 
-  // 页面加载时用默认 ID 渲染一次预览
+  // 页面加载时用默认 ID 渲染一次预览（两种方式）
   renderPreview();
 </script>
 
