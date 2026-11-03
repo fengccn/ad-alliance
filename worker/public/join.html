@@ -273,10 +273,8 @@
     var W = 600, H = 200;
     var bg = bgOptions[currentBg];
     paintBackground(ctx, W, H, bg);
-    // 左侧强调色条
-    ctx.fillStyle = 'rgba(255,255,255,0.14)'; ctx.fillRect(0, 0, 12, H);
-
     // Logo（上传则绘制图片；未上传则绘制占位圆，内含站点名首字符）
+    var logoX = 58;            // Logo 中心 x（与左侧边缘留空隙）
     if (adLogoImg) {
       var lw = adLogoImg.width, lh = adLogoImg.height;
       var maxH = 76, maxW = 112;
@@ -284,31 +282,36 @@
       var dw = lw * s, dh = lh * s;
       ctx.save();
       ctx.beginPath();
-      ctx.arc(46, H / 2, 42, 0, Math.PI * 2);
+      ctx.arc(logoX, H / 2, 42, 0, Math.PI * 2);
       ctx.clip();
-      ctx.drawImage(adLogoImg, 46 - dw / 2, H / 2 - dh / 2, dw, dh);
+      ctx.drawImage(adLogoImg, logoX - dw / 2, H / 2 - dh / 2, dw, dh);
       ctx.restore();
     } else {
       ctx.fillStyle = 'rgba(255,255,255,0.18)';
-      ctx.beginPath(); ctx.arc(46, H / 2, 42, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(logoX, H / 2, 42, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = '#fff';
       ctx.font = 'bold 34px sans-serif';
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText(name.charAt(0) || '博', 46, H / 2);
+      ctx.fillText(name.charAt(0) || '博', logoX, H / 2);
     }
+
+    // 文字区：扣除左侧 Logo + 间隙后，在右侧区域居中
+    var leftBound = logoX + 42 + 18;   // Logo 右缘 + 间隙
+    var textX = (W + leftBound) / 2;   // 右侧可用区域的水平中心
+    var textMaxW = W - leftBound - 30; // 右侧文字最大宽度（左右各留边距）
 
     // 站点名称（居中、超长自动省略）
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 40px sans-serif';
-    ctx.fillText(fitText(ctx, name, W - 60, 40), W / 2, H / 2 - 24);
+    ctx.fillText(fitText(ctx, name, textMaxW, 40), textX, H / 2 - 24);
     // 域名（取主机名）
     var host = '';
     if (url) { try { host = new URL(url).host; } catch (e) { host = url; } }
     if (host) {
       ctx.fillStyle = 'rgba(255,255,255,0.88)';
       ctx.font = '20px sans-serif';
-      ctx.fillText(fitText(ctx, host, W - 60, 20), W / 2, H / 2 + 22);
+      ctx.fillText(fitText(ctx, host, textMaxW, 20), textX, H / 2 + 22);
     }
     // 同步到右侧 300×100 预览框（比例 3:1 一致，不变形）
     var right = document.getElementById('rightPreview');
