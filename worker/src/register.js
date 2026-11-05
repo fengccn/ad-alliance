@@ -100,22 +100,17 @@ export async function handleRegister(env, body) {
 
   // 创建广告（默认 pending，需审核）
   //  - image 模式：有图 + 有链接才建记录
-  //  - rss 模式：也建一条记录（图片留空），用于统一记录曝光/点击与审核流转
+  //  - rss 模式：也建一条记录，并保留会员填写的图片素材（切换回来时不用重填）
+  const adImage = image_url || '';
+  const adTarget = target_url || (ad_mode === 'rss' ? site_url : '');
+
   let adId = null;
-  if (ad_mode === 'rss') {
-    const adRes = await env.DB.prepare(
-      `INSERT INTO ads (site_id, image_url, target_url, status, created_at)
-       VALUES (?, '', ?, 'pending', datetime('now'))`
-    )
-      .bind(siteId, site_url)
-      .run();
-    adId = adRes.meta.last_row_id;
-  } else if (image_url && target_url) {
+  if (ad_mode === 'rss' || (image_url && target_url)) {
     const adRes = await env.DB.prepare(
       `INSERT INTO ads (site_id, image_url, target_url, status, created_at)
        VALUES (?, ?, ?, 'pending', datetime('now'))`
     )
-      .bind(siteId, image_url, target_url)
+      .bind(siteId, adImage, adTarget)
       .run();
     adId = adRes.meta.last_row_id;
   }
@@ -198,9 +193,10 @@ export async function handleAddAd(env, body) {
 
   const prevMode = site.ad_mode === 'rss' ? 'rss' : 'image';
 
-  // rss 模式不展示图片：图片留空，target_url 用站点首页兜底
-  const finalImage = ad_mode === 'rss' ? '' : image_url;
-  const finalTarget = ad_mode === 'rss' ? (target_url || site.site_url || '') : target_url;
+  // 两种形式各自的数据都保留：rss 模式下不清空图片素材，
+  // 会员切回图片广告时无需重新填写（仍需重新审核）。
+  const finalImage = image_url || '';
+  const finalTarget = target_url || (ad_mode === 'rss' ? site.site_url || '' : '');
 
   // 只有「切换形式」或「更换素材」才需要重新审核；
   // 仅调整 RSS 背景纹理时保持原状态，避免换个背景就把广告打回 pending。
@@ -316,6 +312,53 @@ export async function handleSetPassword(env, body) {
   const password_hash = await hashPassword(new_password, env.HASH_SALT);
   await env.DB.prepare('UPDATE sites SET password_hash = ? WHERE id = ?').bind(password_hash, site_id).run();
   return { status: 200, body: { ok: true, message: '登录密码已更新。' } };
+}
+
+/** POST /api/member/profile —— 修改站点资料（站点名称 / 站点网址 / 联系邮箱，需 api_key 鉴权） */
+export async function handleUpdateProfile(env, body) {
+  const site_id = Number(body.site_id);
+  const api_key = (body.api_key || '').trim();
+  const site_name = (body.site_name || '').trim();
+  const site_url = (body.site_url || '').trim();
+  const contact_email = (body.contact_email || '').trim();
+
+  if (!site_id || !api_key) return { status: 400, body: { error: 'missing site_id or api_key' } };
+  if (!site_name || !site_url || !contact_email) {
+    return { status: 400, body: { error: '站点名称、站点网址、联系邮箱都不能为空' } };
+  }
+  if (!isHttpUrl(site_url)) {
+    return { status: 400, body: { error: '站点网址必须是合法的 http(s) 链接' } };
+  }
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(contact_email)) {
+    return { status: 400, body: { error: '联系邮箱格式不正确' } };
+  }
+
+  const site = await env.DB.prepare('SELECT id, api_key, site_name, site_url, contact_email FROM sites WHERE id = ?')
+    .bind(site_id)
+    .first();
+  if (!site) return { status: 404, body: { error: 'site not found' } };
+  if (site.api_key !== api_key) return { status: 403, body: { error: 'unauthorized' } };
+
+  await env.DB.prepare('UPDATE sites SET site_name = ?, site_url = ?, contact_email = ? WHERE id = ?')
+    .bind(site_name, site_url, contact_email, site_id)
+    .run();
+
+  const changed = [];
+  if (site.site_name !== site_name) changed.push('站点名称');
+  if (site.site_url !== site_url) changed.push('站点网址');
+  if (site.contact_email !== contact_email) changed.push('联系邮箱');
+
+  return {
+    status: 200,
+    body: {
+      ok: true,
+      site_name,
+      site_url,
+      contact_email,
+      changed: changed,
+      message: changed.length ? (changed.join('、') + '已更新。') : '资料没有变化。',
+    },
+  };
 }
 
 /** POST /api/self —— 已激活站点更新自身广告素材（左侧 100x100，需 api_key 鉴权） */

@@ -9,7 +9,8 @@ export async function handleStats(env, siteId, apiKey) {
   if (!siteId || !apiKey) return { status: 400, body: { error: 'missing site_id or api_key' } };
 
   const site = await env.DB.prepare(
-    `SELECT id, api_key, site_name, ad_mode, rss_url, rss_status, rss_article_title, rss_article_url, rss_theme
+    `SELECT id, api_key, site_name, site_url, contact_email, status,
+            ad_mode, rss_url, rss_status, rss_article_title, rss_article_url, rss_theme
      FROM sites WHERE id = ?`
   )
     .bind(siteId)
@@ -66,6 +67,9 @@ export async function handleStats(env, siteId, apiKey) {
     status: 200,
     body: {
       site_name: site.site_name,
+      site_url: site.site_url || '',
+      contact_email: site.contact_email || '',
+      site_status: site.status || '',
       ad_mode: site.ad_mode || 'image',
       rss_url: site.rss_url || '',
       rss_status: site.rss_status || 'ok',

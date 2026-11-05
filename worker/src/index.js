@@ -14,7 +14,7 @@
 import { getClientIp, cors, respond } from './utils.js';
 import { handleServe, handleEmbed, handlePlatformAd } from './serve.js';
 import { handleClick } from './click.js';
-import { handleRegister, handleAddAd, handleUpdateSelf, handleMemberLogin, handleSetPassword, handleRssRefresh } from './register.js';
+import { handleRegister, handleAddAd, handleUpdateProfile, handleUpdateSelf, handleMemberLogin, handleSetPassword, handleRssRefresh } from './register.js';
 import { fetchRss, refreshAllRss } from './rss.js';
 import { handleStats } from './stats.js';
 import { handleAdmin } from './admin.js';
@@ -119,6 +119,11 @@ export default {
       else if (path === '/api/member/set-password' && request.method === 'POST') {
         const body = await request.json().catch(() => ({}));
         result = await handleSetPassword(env, body);
+      }
+      // ---- 会员修改站点资料（站名 / 网址 / 邮箱） ----
+      else if (path === '/api/member/profile' && request.method === 'POST') {
+        const body = await request.json().catch(() => ({}));
+        result = await handleUpdateProfile(env, body);
       }
       // ---- 管理后台 API ----
       else if (path.startsWith('/admin/api')) {
