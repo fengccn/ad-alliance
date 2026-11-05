@@ -100,6 +100,27 @@ wrangler d1 execute ad-alliance-db --file=./schema.sql --remote
 
 看到 `Executed ... statements` 即成功。
 
+### 3.1 已有数据库升级（新增 RSS 文章广告）
+
+如果数据库**之前已经初始化过**，不要重复跑 `schema.sql`（`CREATE TABLE IF NOT EXISTS` 不会补列），执行增量迁移：
+
+```bash
+wrangler d1 execute ad-alliance-db --remote --file=./migrations/20261105_add_rss.sql
+wrangler d1 execute ad-alliance-db --remote --file=./migrations/20261105_add_rss_theme.sql
+```
+
+新增的字段（`sites` 表）：`ad_mode`（image / rss）、`rss_url`、`rss_article_title`、`rss_article_url`、`rss_status`、`rss_theme`（rice / card / grid / dot，RSS 广告背景纹理）。
+老站点默认 `ad_mode='image'`、`rss_theme='rice'`，图片广告行为完全不变。
+
+`wrangler.toml` 已配置每 2 小时刷新一次 RSS 最新文章：
+
+```toml
+[triggers]
+crons = ["0 */2 * * *"]
+```
+
+不想要定时刷新可以删掉这两行，会员页仍可点「刷新最新文章」手动更新。
+
 ---
 
 ## 4. 连接 Cloudflare，实现 push 自动部署
