@@ -48,15 +48,28 @@ export async function handleServe(env, siteId, ip, ua) {
   }
 
   // 4) 返回广告数据。click_url 必须经过本服务端，否则无法统计点击
-  return {
-    status: 200,
-    body: {
-      ad_id: ad.id,
-      image_url: ad.image_url,
-      click_url: `${env.APP_BASE}/click/${ad.id}/${siteId}`,
-      site_name: ad.site_name,
-    },
-  };
+  const base = env.APP_BASE;
+  const body =
+    ad.mode === 'rss'
+      ? {
+          ad_id: ad.id,
+          mode: 'rss',
+          image_url: '',
+          click_url: '',
+          site_name: ad.site_name,
+          site_click_url: `${base}/click/${ad.id}/${siteId}?t=site`,
+          article_title: ad.article_title,
+          article_click_url: `${base}/click/${ad.id}/${siteId}?t=post`,
+        }
+      : {
+          ad_id: ad.id,
+          mode: 'image',
+          image_url: ad.image_url,
+          click_url: `${base}/click/${ad.id}/${siteId}`,
+          site_name: ad.site_name,
+        };
+
+  return { status: 200, body };
 }
 
 /**
@@ -88,15 +101,30 @@ export async function handleEmbed(env, siteId, ip, ua) {
       : null;
 
   // 3) 右侧：随机伙伴广告（300x100），公平调度 + 曝光防刷
+  //    图片模式直接给图；RSS 模式给"站点名 + 最新文章标题"，两个链接都走 /click 统计
   let partner = null;
   let ad = null;
   ad = await selectAd(env, siteId);
   if (ad) {
-    partner = {
-      ad_id: ad.id,
-      image_url: ad.image_url,
-      click_url: `${env.APP_BASE}/click/${ad.id}/${siteId}`,
-    };
+    if (ad.mode === 'rss') {
+      partner = {
+        ad_id: ad.id,
+        mode: 'rss',
+        site_name: ad.site_name,
+        site_url: ad.site_url || '',
+        site_click_url: `${env.APP_BASE}/click/${ad.id}/${siteId}?t=site`,
+        article_title: ad.article_title || '',
+        article_click_url: `${env.APP_BASE}/click/${ad.id}/${siteId}?t=post`,
+        theme: ad.theme || 'rice',
+      };
+    } else {
+      partner = {
+        ad_id: ad.id,
+        mode: 'image',
+        image_url: ad.image_url,
+        click_url: `${env.APP_BASE}/click/${ad.id}/${siteId}`,
+      };
+    }
   }
 
   // 4) 曝光去重 + 异步记录

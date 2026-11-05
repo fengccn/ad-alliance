@@ -8,7 +8,10 @@
 export async function handleStats(env, siteId, apiKey) {
   if (!siteId || !apiKey) return { status: 400, body: { error: 'missing site_id or api_key' } };
 
-  const site = await env.DB.prepare('SELECT id, api_key, site_name FROM sites WHERE id = ?')
+  const site = await env.DB.prepare(
+    `SELECT id, api_key, site_name, ad_mode, rss_url, rss_status, rss_article_title, rss_article_url, rss_theme
+     FROM sites WHERE id = ?`
+  )
     .bind(siteId)
     .first();
   if (!site) return { status: 404, body: { error: 'site not found' } };
@@ -63,6 +66,12 @@ export async function handleStats(env, siteId, apiKey) {
     status: 200,
     body: {
       site_name: site.site_name,
+      ad_mode: site.ad_mode || 'image',
+      rss_url: site.rss_url || '',
+      rss_status: site.rss_status || 'ok',
+      rss_article_title: site.rss_article_title || '',
+      rss_article_url: site.rss_article_url || '',
+      rss_theme: site.rss_theme || 'rice',
       as_publisher: { impressions: pubImp, clicks: pubClk, ctr: pubImp ? +(pubClk / pubImp * 100).toFixed(2) : 0 },
       as_advertiser: { impressions: advImp, clicks: advClk, ctr: advImp ? +(advClk / advImp * 100).toFixed(2) : 0 },
       current_ad: curAd ? { id: curAd.id, image_url: curAd.image_url, target_url: curAd.target_url, status: curAd.status } : null,

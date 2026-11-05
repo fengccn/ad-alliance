@@ -14,7 +14,8 @@
 import { getClientIp, cors, respond } from './utils.js';
 import { handleServe, handleEmbed, handlePlatformAd } from './serve.js';
 import { handleClick } from './click.js';
-import { handleRegister, handleAddAd, handleUpdateSelf, handleMemberLogin, handleSetPassword } from './register.js';
+import { handleRegister, handleAddAd, handleUpdateSelf, handleMemberLogin, handleSetPassword, handleRssRefresh } from './register.js';
+import { fetchRss, refreshAllRss } from './rss.js';
 import { handleStats } from './stats.js';
 import { handleAdmin } from './admin.js';
 import { notifyNewApplication, notifyAdReview } from './notify.js';
@@ -51,7 +52,7 @@ export default {
       // ---- 点击追踪 ----
       else if (path.startsWith('/click/') && request.method === 'GET') {
         const p = path.split('/'); // ['', 'click', adId, siteId]
-        result = await handleClick(env, p[2], p[3], ip, ua);
+        result = await handleClick(env, p[2], p[3], ip, ua, url);
       }
       // ---- 站点注册 ----
       else if (path === '/api/register' && request.method === 'POST') {
@@ -71,9 +72,10 @@ export default {
       else if (path === '/api/ads' && request.method === 'POST') {
         const body = await request.json().catch(() => ({}));
         result = await handleAddAd(env, body);
-        // 广告更新成功（已置 pending）→ 异步提醒管理员重新审核
-        if (result && result.status === 200) {
-          const site = await env.DB.prepare('SELECT id, site_name, contact_email FROM sites WHERE id = ?')
+        // 仅当广告确实被置为待审核（换形式/换素材）时才提醒管理员；
+        // 只调整 RSS 背景纹理时 status 仍是 active，不再发审核邮件
+        if (result && result.status === 200 && result.body.status === 'pending') {
+          const site = await env.DB.prepare('SELECT id, site_name, site_url, contact_email FROM sites WHERE id = ?')
             .bind(Number(body.site_id))
             .first();
           if (site) {
@@ -85,6 +87,19 @@ export default {
             }));
           }
         }
+      }
+      // ---- RSS 订阅读取测试（注册页/会员页点「读取测试」时调用，公开接口） ----
+      else if (path === '/api/rss/test' && request.method === 'POST') {
+        const body = await request.json().catch(() => ({}));
+        const r = await fetchRss((body.url || '').trim());
+        result = r.ok
+          ? { status: 200, body: { ok: true, title: r.title, link: r.link } }
+          : { status: 200, body: { ok: false, error: r.error } };
+      }
+      // ---- 会员手动刷新 RSS 缓存（读取失败会把该站点标记为暂停） ----
+      else if (path === '/api/member/rss/refresh' && request.method === 'POST') {
+        const body = await request.json().catch(() => ({}));
+        result = await handleRssRefresh(env, body);
       }
       // ---- 已激活站点更新自身广告素材 ----
       else if (path === '/api/self' && request.method === 'POST') {
@@ -127,5 +142,13 @@ export default {
         headers: { 'content-type': 'application/json', ...corsHeaders },
       });
     }
+  },
+
+  /**
+   * Cron Trigger：定时刷新所有 RSS 站点的「最新文章」缓存。
+   * 频率在 wrangler.toml 的 [triggers].crons 配置（默认每 2 小时一次）。
+   */
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(refreshAllRss(env));
   },
 };

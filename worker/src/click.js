@@ -6,19 +6,34 @@
 import { hashIp, esc } from './utils.js';
 import { shouldCountClick } from './risk.js';
 
-export async function handleClick(env, adId, siteId, ip, ua) {
+export async function handleClick(env, adId, siteId, ip, ua, url) {
   if (!adId || !siteId) {
     return { status: 400, body: { error: 'missing params' } };
   }
 
-  // 1) 校验广告
-  const ad = await env.DB.prepare('SELECT id, target_url, status FROM ads WHERE id = ?')
+  // 1) 校验广告（同时取所属站点信息：RSS 模式的跳转目标来自站点，不接受外部 URL）
+  const ad = await env.DB.prepare(
+    `SELECT a.id, a.target_url, a.status, a.site_id,
+            s.site_url, s.rss_article_url
+     FROM ads a JOIN sites s ON s.id = a.site_id
+     WHERE a.id = ?`
+  )
     .bind(adId)
     .first();
   if (!ad) return { status: 404, body: { error: 'ad not found' } };
   if (ad.status !== 'active') return { status: 403, body: { error: 'ad not active' } };
 
-  // 2) 点击防刷：同一 IP 对同一广告 5 分钟内只计一次
+  // 2) 决定跳转目标：t=site → 站点首页；t=post → RSS 最新文章；默认 → 广告主设置的 target_url
+  const t = url && url.searchParams ? url.searchParams.get('t') : '';
+  let target = ad.target_url;
+  if (t === 'site') target = ad.site_url;
+  else if (t === 'post') target = ad.rss_article_url;
+
+  if (!target || !/^https?:\/\/.+/i.test(target)) {
+    return { status: 404, body: { error: 'target not available' } };
+  }
+
+  // 3) 点击防刷：同一 IP 对同一广告 5 分钟内只计一次
   const ipHash = await hashIp(ip, env.HASH_SALT);
   const countIt = await shouldCountClick(env, ipHash, adId);
   if (countIt) {
@@ -30,11 +45,11 @@ export async function handleClick(env, adId, siteId, ip, ua) {
       .run();
   }
 
-  // 3) 返回 HTML 延迟跳转页
+  // 4) 返回 HTML 延迟跳转页
   return {
     status: 200,
     contentType: 'text/html',
-    body: redirectPage(ad.target_url),
+    body: redirectPage(target),
   };
 }
 

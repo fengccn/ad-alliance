@@ -61,10 +61,12 @@ export async function selectAd(env, siteId) {
   for (const r of cntRows.results) todayCounts[r.site_id] = r.cnt;
 
   // 2) 取所有可投放的候选广告（active、非本站、所属站点 active）
+  //    同时带上站点的广告形式与 RSS 缓存：rss 模式的广告不走图片，改展示站点名 + 最新文章标题
   const rows = await env.DB.prepare(
     `SELECT a.id, a.image_url, a.target_url, a.weight,
             a.site_id AS owner_site, a.created_at AS ad_created,
-            s.daily_cap, s.created_at AS site_created, s.site_name
+            s.daily_cap, s.created_at AS site_created, s.site_name, s.site_url,
+            s.ad_mode, s.rss_url, s.rss_article_title, s.rss_article_url, s.rss_status, s.rss_theme
      FROM ads a
      JOIN sites s ON s.id = a.site_id
      WHERE a.status = 'active'
@@ -74,13 +76,33 @@ export async function selectAd(env, siteId) {
     .bind(siteId)
     .all();
 
-  // 3) 过滤达到每日上限的站点 + 计算加权
+  // 3) 过滤达到每日上限的站点 / RSS 失效的站点 + 计算加权
   const pool = [];
   for (const r of rows.results) {
     const used = todayCounts[r.owner_site] || 0;
     if (used >= r.daily_cap) continue; // 该站点今日曝光配额已用尽，本轮不分给它（防垄断）
+
+    const mode = r.ad_mode === 'rss' ? 'rss' : 'image';
+
+    // RSS 模式：没有可用文章或上次读取失败 → 暂停该站点广告，本轮不投放（不降级成图片，避免空图）
+    if (mode === 'rss') {
+      if (r.rss_status !== 'ok') continue;
+      if (!r.rss_article_title || !r.rss_article_url) continue;
+    }
+
     const boost = isNewSite(r.site_created, env.NEW_SITE_DAYS || 7) ? Number(env.NEW_SITE_BOOST || 1.5) : 1;
-    pool.push({ id: r.id, image_url: r.image_url, target_url: r.target_url, w: r.weight * boost });
+    pool.push({
+      id: r.id,
+      mode,
+      image_url: r.image_url,
+      target_url: r.target_url,
+      site_name: r.site_name,
+      site_url: r.site_url,
+      article_title: r.rss_article_title || '',
+      article_url: r.rss_article_url || '',
+      theme: r.rss_theme || 'rice',
+      w: r.weight * boost,
+    });
   }
 
   if (pool.length === 0) return null;

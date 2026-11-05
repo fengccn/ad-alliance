@@ -17,7 +17,8 @@ export async function handleAdmin(env, request, url, path, ctx) {
     const status = url.searchParams.get('status') || 'pending';
     const rows = await env.DB.prepare(
       `SELECT a.id, a.image_url, a.target_url, a.weight, a.created_at,
-              s.id AS site_id, s.site_name, s.site_url
+              s.id AS site_id, s.site_name, s.site_url,
+              s.ad_mode, s.rss_url, s.rss_status, s.rss_article_title, s.rss_article_url
        FROM ads a JOIN sites s ON s.id = a.site_id
        WHERE a.status = ?
        ORDER BY a.created_at DESC`
@@ -60,6 +61,7 @@ export async function handleAdmin(env, request, url, path, ctx) {
     const rows = await env.DB.prepare(
       `SELECT s.id, s.site_name, s.site_url, s.contact_email, s.status, s.daily_cap,
               s.created_at,
+              s.ad_mode, s.rss_url, s.rss_status, s.rss_article_title,
               (SELECT a.image_url FROM ads a WHERE a.site_id = s.id ORDER BY a.id LIMIT 1) AS ad_image_url,
               (SELECT COUNT(*) FROM ads a WHERE a.site_id = s.id) AS ad_count,
               (SELECT COUNT(*) FROM impressions i WHERE i.site_id = s.id) AS imp_count,
