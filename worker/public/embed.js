@@ -91,6 +91,95 @@
     return a;
   }
 
+  // ---- RSS 文章广告样式（只向页面注入一次，避免重复） ----
+  var RSS_CSS = [
+    '.aa-rss{position:relative;display:flex;flex-direction:column;justify-content:center;',
+    'width:100%;height:100%;padding:9px 14px;box-sizing:border-box;overflow:hidden;',
+    'border:1px solid rgba(0,0,0,.07);border-radius:2px;}',
+    '.aa-rss::after{content:"";position:absolute;inset:0;pointer-events:none;',
+    'background:linear-gradient(180deg,rgba(255,255,255,.50),rgba(255,255,255,0));}',
+    '.aa-rss .aa-link{position:relative;z-index:1;text-decoration:none;-webkit-tap-highlight-color:transparent;}',
+    '.aa-rss .aa-site{display:block;height:22px;line-height:22px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}',
+    '.aa-rss .aa-label{font-size:11.5px;color:#8d8d8d;font-weight:400;letter-spacing:.5px;}',
+    '.aa-rss .aa-name{font-size:15.5px;font-weight:700;letter-spacing:.3px;',
+    'background:linear-gradient(92deg,#0b57d0,#8a3ffc,#0b57d0);-webkit-background-clip:text;',
+    'background-clip:text;color:transparent;}',
+    '.aa-rss .aa-post{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;',
+    'min-height:35px;margin-top:5px;text-align:center;font-size:12px;line-height:1.45;',
+    'background:linear-gradient(90deg,#0f766e,#1a73e8);-webkit-background-clip:text;',
+    'background-clip:text;color:transparent;}',
+    '.aa-rss a:hover{animation:aaRssBreath 1.8s ease-in-out infinite;}',
+    '@keyframes aaRssBreath{0%,100%{opacity:1;filter:drop-shadow(0 0 0 rgba(26,115,232,0));}',
+    '50%{opacity:.84;filter:drop-shadow(0 0 5px rgba(26,115,232,.45));}}',
+    /* 宣纸：米白底 + 两层细纤维颗粒 */
+    '.aa-theme-rice{background-color:#faf7ef;background-image:',
+    'radial-gradient(rgba(140,105,60,.10) 1px,transparent 1.2px),',
+    'radial-gradient(rgba(140,105,60,.06) 1px,transparent 1.2px),',
+    'linear-gradient(180deg,#fffdf7,#f4efe1);',
+    'background-size:13px 13px,9px 9px,100% 100%;background-position:0 0,5px 6px,0 0;}',
+    /* 卡纸：暖白 + 极细横纹 */
+    '.aa-theme-card{background-color:#f6f4f0;background-image:',
+    'repeating-linear-gradient(0deg,rgba(0,0,0,.030) 0 1px,transparent 1px 4px),',
+    'linear-gradient(180deg,#fbfaf7,#eeeae2);}',
+    /* 格纹：浅青方格 */
+    '.aa-theme-grid{background-color:#f7faf9;background-image:',
+    'linear-gradient(rgba(15,118,110,.075) 1px,transparent 1px),',
+    'linear-gradient(90deg,rgba(15,118,110,.075) 1px,transparent 1px);background-size:12px 12px;}',
+    /* 点纹：淡蓝圆点 */
+    '.aa-theme-dot{background-color:#f5f9ff;background-image:',
+    'radial-gradient(rgba(26,115,232,.16) 1.4px,transparent 1.6px);background-size:9px 9px;}'
+  ].join('');
+
+  function injectRssStyle() {
+    var head = document.head || document.documentElement;
+    if (!head || document.getElementById('aa-rss-style')) return;
+    var s = document.createElement('style');
+    s.id = 'aa-rss-style';
+    s.textContent = RSS_CSS;
+    head.appendChild(s);
+  }
+
+  // 生成 RSS 文章广告块：上为「推荐博客：站点名」，下为居中、最多两行的最新文章标题
+  function makeRssAd(p) {
+    injectRssStyle();
+
+    var theme = /^(rice|card|grid|dot)$/.test(p.theme || '') ? p.theme : 'rice';
+    var box = document.createElement('div');
+    box.className = 'aa-rss aa-theme-' + theme;
+
+    // 第一行：推荐博客：站点名（整行链到站点首页）
+    var a1 = document.createElement('a');
+    a1.className = 'aa-link aa-site';
+    a1.href = p.site_click_url || p.site_url || '#';
+    a1.target = '_blank';
+    a1.rel = 'noopener nofollow sponsored';
+    a1.title = '访问该站点';
+
+    var label = document.createElement('span');
+    label.className = 'aa-label';
+    label.textContent = '推荐博客：';
+
+    var name = document.createElement('span');
+    name.className = 'aa-name';
+    name.textContent = p.site_name || '';
+
+    a1.appendChild(label);
+    a1.appendChild(name);
+
+    // 第二行：最新文章标题（居中，超长最多两行，链到文章）
+    var a2 = document.createElement('a');
+    a2.className = 'aa-link aa-post';
+    a2.href = p.article_click_url || p.article_url || '#';
+    a2.target = '_blank';
+    a2.rel = 'noopener nofollow sponsored';
+    a2.title = '阅读最新文章';
+    a2.textContent = p.article_title || '最新文章';
+
+    box.appendChild(a1);
+    box.appendChild(a2);
+    return box;
+  }
+
   // 请求 /api/embed：一次拿到左右两块数据
   var xhr = new XMLHttpRequest();
   xhr.open('GET', API + '/api/embed?site_id=' + encodeURIComponent(INLINE.siteId) + '&_t=' + Date.now(), true);
@@ -111,8 +200,11 @@
         left.style.display = 'none';
       }
 
-      // 右侧：随机伙伴广告（300x100），点击走服务器中转
-      if (d.partner && d.partner.image_url && d.partner.click_url) {
+      // 右侧：随机伙伴广告（300x100）。图片广告直接显图；RSS 广告显示站点名 + 最新文章标题
+      if (d.partner && d.partner.mode === 'rss' && (d.partner.site_name || d.partner.article_title)) {
+        right.appendChild(makeRssAd(d.partner));
+        hasAny = true;
+      } else if (d.partner && d.partner.image_url && d.partner.click_url) {
         right.appendChild(makeAd(d.partner.click_url, d.partner.image_url));
         hasAny = true;
       } else {

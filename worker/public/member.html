@@ -46,6 +46,59 @@
   .b-rejected{background:#fce8e6;color:#d93025}
   .code-block { background:#202124; color:#e8eaed; padding:14px; border-radius:8px; font-family:monospace; font-size:12px; white-space:pre-wrap; word-break:break-all; position:relative; margin-top:10px; }
   .copy-btn { position:absolute; top:8px; right:8px; background:#1a73e8; color:#fff; border:none; padding:4px 12px; border-radius:4px; cursor:pointer; font-size:12px; }
+
+  /* ---- RSS 广告右侧效果预览（与 embed 广告位样式一致） ---- */
+  .rss-pv-row { display:flex; gap:2px; width:402px; max-width:100%; height:100px; }
+  .rss-pv-left {
+    flex:0 0 100px; width:100px; height:100px; background:linear-gradient(135deg,#1a73e8,#8a3ffc);
+    color:#fff; font-size:11px; display:flex; align-items:center; justify-content:center; text-align:center; line-height:1.4;
+  }
+  .rss-pv-right { flex:1 1 auto; min-width:0; height:100px; }
+  .aa-pv {
+    position:relative; display:flex; flex-direction:column; justify-content:center; width:100%; height:100%;
+    padding:9px 14px; box-sizing:border-box; overflow:hidden; border:1px solid rgba(0,0,0,.07); border-radius:2px;
+  }
+  .aa-pv::after { content:""; position:absolute; inset:0; pointer-events:none;
+    background:linear-gradient(180deg,rgba(255,255,255,.50),rgba(255,255,255,0)); }
+  .aa-pv .pv-site { position:relative; z-index:1; height:22px; line-height:22px; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .aa-pv .pv-label { font-size:11.5px; color:#8d8d8d; letter-spacing:.5px; }
+  .aa-pv .pv-name { font-size:15.5px; font-weight:700; letter-spacing:.3px;
+    background:linear-gradient(92deg,#0b57d0,#8a3ffc,#0b57d0); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .aa-pv .pv-post { position:relative; z-index:1; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+    overflow:hidden; min-height:35px; margin-top:5px; text-align:center; font-size:12px; line-height:1.45;
+    background:linear-gradient(90deg,#0f766e,#1a73e8); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .aa-pv .pv-site:hover, .aa-pv .pv-post:hover { animation:aaPvBreath 1.8s ease-in-out infinite; }
+  @keyframes aaPvBreath {
+    0%,100% { opacity:1; filter:drop-shadow(0 0 0 rgba(26,115,232,0)); }
+    50% { opacity:.84; filter:drop-shadow(0 0 5px rgba(26,115,232,.45)); }
+  }
+  .aa-pv-theme-rice {
+    background-color:#faf7ef;
+    background-image:
+      radial-gradient(rgba(140,105,60,.10) 1px, transparent 1.2px),
+      radial-gradient(rgba(140,105,60,.06) 1px, transparent 1.2px),
+      linear-gradient(180deg,#fffdf7,#f4efe1);
+    background-size:13px 13px, 9px 9px, 100% 100%;
+    background-position:0 0, 5px 6px, 0 0;
+  }
+  .aa-pv-theme-card {
+    background-color:#f6f4f0;
+    background-image:
+      repeating-linear-gradient(0deg, rgba(0,0,0,.030) 0 1px, transparent 1px 4px),
+      linear-gradient(180deg,#fbfaf7,#eeeae2);
+  }
+  .aa-pv-theme-grid {
+    background-color:#f7faf9;
+    background-image:
+      linear-gradient(rgba(15,118,110,.075) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(15,118,110,.075) 1px, transparent 1px);
+    background-size:12px 12px;
+  }
+  .aa-pv-theme-dot {
+    background-color:#f5f9ff;
+    background-image:radial-gradient(rgba(26,115,232,.16) 1.4px, transparent 1.6px);
+    background-size:9px 9px;
+  }
 </style>
 </head>
 <body>
@@ -104,6 +157,42 @@
       <h2>我的广告（右侧 300×100，展示给联盟内其他站点）</h2>
       <p class="muted" style="margin-top:0">每位会员仅保留一条广告。修改后需管理员<b>重新审核通过</b>才恢复展示。</p>
       <div id="adStatus" class="msg" style="display:block"></div>
+
+      <div class="field" style="margin-bottom:6px">
+        <label>广告形式（整站二选一，切换后需重新审核）</label>
+        <label style="font-weight:normal;display:block;margin-top:4px">
+          <input type="radio" name="m_ad_mode" value="image"> 图片广告
+        </label>
+        <label style="font-weight:normal;display:block;margin-top:4px">
+          <input type="radio" name="m_ad_mode" value="rss"> RSS 文章广告（站点名称 + 最新文章标题）
+        </label>
+      </div>
+
+      <div id="mRssFields" style="display:none">
+        <div class="field">
+          <label>RSS / Atom 订阅地址</label>
+          <input id="m_rss_url" placeholder="https://example.com/feed.xml">
+          <div style="margin-top:8px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <button type="button" id="m_rssTestBtn" class="btn" style="padding:8px 16px;width:auto">读取测试</button>
+            <button type="button" id="m_rssRefreshBtn" class="btn" style="padding:8px 16px;width:auto;background:#188038">刷新最新文章</button>
+            <span id="m_rssTestMsg" style="font-size:13px;color:#5f6368"></span>
+          </div>
+          <div style="margin-top:12px">
+            <div class="muted" style="margin-bottom:6px">右侧背景样式（浅色纹理，随时可换）</div>
+            <div id="mThemePicker" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+          </div>
+          <div style="margin-top:14px">
+            <div class="muted" style="margin-bottom:6px">广告位效果预览（含左侧平台广告位示意）</div>
+            <div id="mRssPreview" style="display:none"></div>
+            <div id="mRssPreviewHint" style="font-size:12px;color:#80868b;border:1px dashed #dadce0;border-radius:6px;padding:16px;text-align:center;width:402px;max-width:100%;box-sizing:border-box">
+              点「读取测试」或「刷新最新文章」后，这里会显示右侧的实际效果
+            </div>
+          </div>
+          <p class="muted" style="margin:6px 0 0">读取失败时该站点广告会被自动暂停，修好后重新测试或保存即可恢复。</p>
+        </div>
+      </div>
+
+      <div id="mImageFields">
       <div id="adPreview" style="width:300px;height:100px;max-width:100%;background:#f1f3f4;border:1px dashed #dadce0;border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center;margin:10px 0">
         <span style="font-size:11px;color:#999">广告图预览 300×100</span>
       </div>
@@ -111,6 +200,8 @@
         <div class="field grow"><label>广告图片地址（300×100）</label><input id="ad_image_url" placeholder="https://.../ad-300x100.png"></div>
         <div class="field grow"><label>广告跳转链接</label><input id="ad_target_url" placeholder="https://example.com/landing"></div>
       </div>
+      </div><!-- /mImageFields -->
+
       <button class="btn" id="adBtn">保存广告（修改后需重新审核）</button>
       <div class="msg" id="adMsg"></div>
     </div>
@@ -156,6 +247,153 @@
     }
   }
   document.getElementById('ad_image_url').addEventListener('input', renderAdPreview);
+
+  // ---- 广告形式切换（图片 / RSS）----
+  function modeOf() {
+    var r = document.querySelector('input[name="m_ad_mode"]:checked');
+    return r ? r.value : 'image';
+  }
+  function syncMode() {
+    var isRss = modeOf() === 'rss';
+    document.getElementById('mRssFields').style.display = isRss ? 'block' : 'none';
+    document.getElementById('mImageFields').style.display = isRss ? 'none' : 'block';
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('input[name="m_ad_mode"]'), function (el) {
+    el.addEventListener('change', syncMode);
+  });
+
+  // ---- RSS 背景样式选择（四种浅色纹理，默认宣纸） ----
+  var M_THEME_LIST = [
+    { id: 'rice', name: '宣纸', bg: '#faf7ef' },
+    { id: 'card', name: '卡纸', bg: '#f6f4f0' },
+    { id: 'grid', name: '格纹', bg: '#f7faf9' },
+    { id: 'dot',  name: '点纹', bg: '#f5f9ff' }
+  ];
+  var mTheme = 'rice';
+  function renderMThemePicker() {
+    var box = document.getElementById('mThemePicker');
+    if (!box) return;
+    box.innerHTML = '';
+    M_THEME_LIST.forEach(function (t) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = t.name;
+      b.style.cssText =
+        'padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;background:' + t.bg +
+        ';border:' + (mTheme === t.id ? '2px solid #1a73e8' : '1px solid #dadce0') +
+        ';color:' + (mTheme === t.id ? '#1a73e8' : '#5f6368');
+      b.addEventListener('click', function () {
+        mTheme = t.id;
+        renderMThemePicker();
+        renderMRssPreview();
+      });
+      box.appendChild(b);
+    });
+  }
+  renderMThemePicker();
+
+  // ---- RSS 广告右侧效果预览（站点名 / 文章标题 / 纹理实时反映） ----
+  var mSiteName = '';
+  var mPvTitle = '';
+  function pvEscM(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+  function renderMRssPreview() {
+    var box = document.getElementById('mRssPreview');
+    var hint = document.getElementById('mRssPreviewHint');
+    if (!box || !hint) return;
+    if (!mPvTitle) { box.style.display = 'none'; hint.style.display = 'block'; return; }
+
+    box.innerHTML =
+      '<div class="rss-pv-row">' +
+        '<div class="rss-pv-left">' +
+          (mPvAd && mPvAd.image_url
+            ? '<img src="' + pvEscM(mPvAd.image_url) + '" alt="平台广告" style="width:100%;height:100%;object-fit:cover;display:block;border:0">'
+            : '平台广告<br>100×100') +
+        '</div>' +
+        '<div class="rss-pv-right">' +
+          '<div class="aa-pv aa-pv-theme-' + mTheme + '">' +
+            '<div class="pv-site"><span class="pv-label">推荐博客：</span>' +
+              '<span class="pv-name">' + pvEscM(mSiteName || '你的博客名称') + '</span></div>' +
+            '<div class="pv-post">' + pvEscM(mPvTitle) + '</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    box.style.display = 'block';
+    hint.style.display = 'none';
+
+    // 平台广告图加载失败时回退成占位
+    var pvImg = box.querySelector('.rss-pv-left img');
+    if (pvImg) {
+      pvImg.addEventListener('error', function () {
+        this.parentNode.innerHTML = '平台广告<br>100×100';
+      });
+    }
+  }
+
+  // 平台自身广告（管理员后台设置的图），用于预览左侧真实广告位
+  var mPvAd = null;
+  fetch(location.origin + '/api/platform-ad')
+    .then(function (r) { return r.json(); })
+    .then(function (d) { mPvAd = d || {}; renderMRssPreview(); })
+    .catch(function () { /* 拿不到就用占位 */ });
+  syncMode();
+
+  document.getElementById('m_rss_url').addEventListener('input', function () {
+    mPvTitle = '';
+    renderMRssPreview();
+  });
+
+  // ---- RSS 读取测试（只验证能否读到，不写库）----
+  document.getElementById('m_rssTestBtn').addEventListener('click', async function () {
+    var btn = this;
+    var msg = document.getElementById('m_rssTestMsg');
+    var url = document.getElementById('m_rss_url').value.trim();
+    if (!url) { msg.style.color = '#c5221f'; msg.textContent = '请先填写 RSS 地址'; return; }
+    btn.disabled = true; btn.textContent = '读取中…';
+    msg.style.color = '#5f6368'; msg.textContent = '正在读取…';
+    try {
+      var d = await api('/api/rss/test', { method: 'POST', body: JSON.stringify({ url: url }) });
+      if (d.ok) {
+        mPvTitle = d.title || '（未读取到标题）';
+        renderMRssPreview();
+        msg.style.color = '#188038';
+        msg.textContent = '✅ 读取成功：' + (d.title || '（无标题）') + ' → ' + (d.link || '');
+      } else {
+        msg.style.color = '#c5221f';
+        msg.textContent = '❌ ' + (d.error || '读取失败');
+      }
+    } catch (e) {
+      msg.style.color = '#c5221f';
+      msg.textContent = '❌ ' + e.message;
+    } finally {
+      btn.disabled = false; btn.textContent = '读取测试';
+    }
+  });
+
+  // ---- 刷新最新文章（不触发重新审核） ----
+  document.getElementById('m_rssRefreshBtn').addEventListener('click', async function () {
+    var btn = this;
+    var msg = document.getElementById('m_rssTestMsg');
+    btn.disabled = true; btn.textContent = '刷新中…';
+    try {
+      var d = await api('/api/member/rss/refresh', {
+        method: 'POST',
+        body: JSON.stringify({ site_id: Number(token.site_id), api_key: token.api_key })
+      });
+      msg.style.color = '#188038';
+      msg.textContent = '✅ 已刷新：' + (d.title || '');
+      if (d.title) { mPvTitle = d.title; renderMRssPreview(); }
+      showMsg(document.getElementById('adMsg'), true, 'RSS 最新文章已刷新。');
+    } catch (e) {
+      msg.style.color = '#c5221f';
+      msg.textContent = '❌ ' + e.message;
+    } finally {
+      btn.disabled = false; btn.textContent = '刷新最新文章';
+    }
+  });
 
   // ---- 我的嵌入代码（两种方式）----
   function renderEmbedCode() {
@@ -238,6 +476,30 @@
       document.getElementById('dailyBody').innerHTML = daily.map(function (d) {
         return '<tr><td>' + esc(d.date) + '</td><td>' + d.impressions + '</td><td>' + d.clicks + '</td></tr>';
       }).join('');
+      // 回显广告形式与 RSS 状态
+      var mode = st.ad_mode || 'image';
+      var radio = document.querySelector('input[name="m_ad_mode"][value="' + mode + '"]');
+      if (radio) radio.checked = true;
+      document.getElementById('m_rss_url').value = st.rss_url || '';
+      mTheme = /^(rice|card|grid|dot)$/.test(st.rss_theme || '') ? st.rss_theme : 'rice';
+      renderMThemePicker();
+      syncMode();
+      mSiteName = st.site_name || '';
+      mPvTitle = mode === 'rss' ? (st.rss_article_title || '') : '';
+      renderMRssPreview();
+      var rssMsg = document.getElementById('m_rssTestMsg');
+      if (mode === 'rss') {
+        if (st.rss_status === 'error') {
+          rssMsg.style.color = '#c5221f';
+          rssMsg.textContent = '⚠ 上次读取失败，该站点广告已被暂停，请修好后重新测试或保存';
+        } else if (st.rss_article_title) {
+          rssMsg.style.color = '#188038';
+          rssMsg.textContent = '当前文章：' + st.rss_article_title;
+        }
+      } else {
+        rssMsg.textContent = ''; rssMsg.style.color = '#5f6368';
+      }
+
       // 回显当前广告
       if (st.current_ad) {
         document.getElementById('ad_image_url').value = st.current_ad.image_url;
@@ -260,19 +522,43 @@
     }
   }
 
-  // ---- 保存/修改唯一广告（自动触发重新审核） ----
+  // ---- 保存/修改唯一广告，或切换广告形式（自动触发重新审核） ----
   document.getElementById('adBtn').addEventListener('click', async function () {
     var b = this; b.disabled = true;
     try {
-      await api('/api/ads', { method: 'POST', body: JSON.stringify({
-        site_id: Number(token.site_id), api_key: token.api_key,
-        image_url: document.getElementById('ad_image_url').value.trim(),
-        target_url: document.getElementById('ad_target_url').value.trim()
-      }) });
-      showMsg(document.getElementById('adMsg'), true, '广告已保存，等待管理员重新审核通过后恢复展示。');
+      var mode = modeOf();
+      if (mode === 'rss' && !document.getElementById('m_rss_url').value.trim()) {
+        showMsg(document.getElementById('adMsg'), false, '选择 RSS 文章广告时，请填写 RSS 订阅地址');
+        return;
+      }
+      var payload = {
+        site_id: Number(token.site_id),
+        api_key: token.api_key,
+        ad_mode: mode
+      };
+      if (mode === 'rss') {
+        payload.rss_url = document.getElementById('m_rss_url').value.trim();
+        payload.rss_theme = mTheme;
+      } else {
+        payload.image_url = document.getElementById('ad_image_url').value.trim();
+        payload.target_url = document.getElementById('ad_target_url').value.trim();
+      }
+      var r = await api('/api/ads', { method: 'POST', body: JSON.stringify(payload) });
+      showMsg(
+        document.getElementById('adMsg'),
+        true,
+        (r && r.message)
+          ? r.message
+          : (mode === 'rss'
+              ? '已切换为 RSS 文章广告（RSS 读取成功），等待管理员重新审核通过后恢复展示。'
+              : '广告已保存，等待管理员重新审核通过后恢复展示。')
+      );
       loadAll();
-    } catch (e) { showMsg(document.getElementById('adMsg'), false, '保存失败：' + e.message); }
-    finally { b.disabled = false; }
+    } catch (e) {
+      showMsg(document.getElementById('adMsg'), false, '保存失败：' + e.message);
+    } finally {
+      b.disabled = false;
+    }
   });
 
   // ---- 修改登录密码（已登录，用密钥鉴权） ----

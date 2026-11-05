@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>博盟 RSS 广告样式预览</title>
+<style>
+  body {
+    margin: 0; padding: 32px 20px 60px; background: #f5f6f7;
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    color: #202124;
+  }
+  h1 { font-size: 18px; margin: 0 0 6px; }
+  p.lead { font-size: 13px; color: #5f6368; margin: 0 0 26px; line-height: 1.7; }
+  .card { background: #fff; border: 1px solid #e8eaed; border-radius: 8px; padding: 16px; margin-bottom: 22px; max-width: 620px; }
+  .card h2 { font-size: 14px; margin: 0 0 4px; }
+  .card .sub { font-size: 12px; color: #80868b; margin: 0 0 12px; }
+  .row { display: flex; gap: 2px; width: 402px; max-width: 100%; height: 100px; }
+  .left { flex: 0 0 100px; width: 100px; height: 100px; background: linear-gradient(135deg, #1a73e8, #8a3ffc);
+          display: flex; align-items: center; justify-content: center; color: #fff; font-size: 12px; text-align: center; }
+  .right { flex: 1 1 auto; min-width: 0; height: 100px; }
+
+  /* ===== 与 embed.html / embed.js 完全一致的 RSS 样式 ===== */
+  .aa-rss {
+    position: relative; display: flex; flex-direction: column; justify-content: center;
+    width: 100%; height: 100%; padding: 9px 14px; box-sizing: border-box;
+    overflow: hidden; border: 1px solid rgba(0,0,0,.07); border-radius: 2px;
+  }
+  .aa-rss::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(180deg, rgba(255,255,255,.50), rgba(255,255,255,0));
+  }
+  .aa-rss .aa-link { position: relative; z-index: 1; text-decoration: none; display: block; }
+  .aa-rss .aa-site { height: 22px; line-height: 22px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .aa-rss .aa-label { font-size: 11.5px; color: #8d8d8d; font-weight: 400; letter-spacing: .5px; }
+  .aa-rss .aa-name {
+    font-size: 15.5px; font-weight: 700; letter-spacing: .3px;
+    background: linear-gradient(92deg, #0b57d0, #8a3ffc, #0b57d0);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .aa-rss .aa-post {
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    min-height: 35px; margin-top: 5px; text-align: center; font-size: 12px; line-height: 1.45;
+    background: linear-gradient(90deg, #0f766e, #1a73e8);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .aa-rss a:hover { animation: aaRssBreath 1.8s ease-in-out infinite; }
+  @keyframes aaRssBreath {
+    0%, 100% { opacity: 1; filter: drop-shadow(0 0 0 rgba(26,115,232,0)); }
+    50% { opacity: .84; filter: drop-shadow(0 0 5px rgba(26,115,232,.45)); }
+  }
+  .aa-theme-rice {
+    background-color: #faf7ef;
+    background-image:
+      radial-gradient(rgba(140,105,60,.10) 1px, transparent 1.2px),
+      radial-gradient(rgba(140,105,60,.06) 1px, transparent 1.2px),
+      linear-gradient(180deg, #fffdf7, #f4efe1);
+    background-size: 13px 13px, 9px 9px, 100% 100%;
+    background-position: 0 0, 5px 6px, 0 0;
+  }
+  .aa-theme-card {
+    background-color: #f6f4f0;
+    background-image:
+      repeating-linear-gradient(0deg, rgba(0,0,0,.030) 0 1px, transparent 1px 4px),
+      linear-gradient(180deg, #fbfaf7, #eeeae2);
+  }
+  .aa-theme-grid {
+    background-color: #f7faf9;
+    background-image:
+      linear-gradient(rgba(15,118,110,.075) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(15,118,110,.075) 1px, transparent 1px);
+    background-size: 12px 12px;
+  }
+  .aa-theme-dot {
+    background-color: #f5f9ff;
+    background-image: radial-gradient(rgba(26,115,232,.16) 1.4px, transparent 1.6px);
+    background-size: 9px 9px;
+  }
+</style>
+</head>
+<body>
+<h1>RSS 文章广告 · 四种浅色纹理</h1>
+<p class="lead">
+  下面每块都是真实的 302×100 广告位渲染结果（左侧示意平台广告，右侧为会员 RSS 广告）。<br>
+  鼠标移到文字上可以看到呼吸效应：透明度轻微起伏 + 淡蓝光晕。会员可在注册页 / 会员后台选择其中一种。
+</p>
+
+<div class="card">
+  <h2>宣纸（rice，默认）</h2>
+  <p class="sub">米白底 + 两层细纤维颗粒，最接近纸面质感</p>
+  <div class="row">
+    <div class="left">平台广告<br>100×100</div>
+    <div class="right">
+      <div class="aa-rss aa-theme-rice">
+        <a class="aa-link aa-site" href="#"><span class="aa-label">推荐博客：</span><span class="aa-name">风城博客</span></a>
+        <a class="aa-link aa-post" href="#">摄影习作：青瓦驻羽——一只麻雀落在江南老宅的瓦檐上，冬日的一束光正好打过来</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>卡纸（card）</h2>
+  <p class="sub">暖白底 + 极细横纹，偏克制的印刷质感</p>
+  <div class="row">
+    <div class="left">平台广告<br>100×100</div>
+    <div class="right">
+      <div class="aa-rss aa-theme-card">
+        <a class="aa-link aa-site" href="#"><span class="aa-label">推荐博客：</span><span class="aa-name">风城博客</span></a>
+        <a class="aa-link aa-post" href="#">摄影习作：青瓦驻羽——一只麻雀落在江南老宅的瓦檐上，冬日的一束光正好打过来</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>格纹（grid）</h2>
+  <p class="sub">浅青方格，像稿纸，适合写作类站点</p>
+  <div class="row">
+    <div class="left">平台广告<br>100×100</div>
+    <div class="right">
+      <div class="aa-rss aa-theme-grid">
+        <a class="aa-link aa-site" href="#"><span class="aa-label">推荐博客：</span><span class="aa-name">风城博客</span></a>
+        <a class="aa-link aa-post" href="#">摄影习作：青瓦驻羽——一只麻雀落在江南老宅的瓦檐上，冬日的一束光正好打过来</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>点纹（dot）</h2>
+  <p class="sub">淡蓝圆点，清爽，适合技术 / 生活类站点</p>
+  <div class="row">
+    <div class="left">平台广告<br>100×100</div>
+    <div class="right">
+      <div class="aa-rss aa-theme-dot">
+        <a class="aa-link aa-site" href="#"><span class="aa-label">推荐博客：</span><span class="aa-name">风城博客</span></a>
+        <a class="aa-link aa-post" href="#">摄影习作：青瓦驻羽——一只麻雀落在江南老宅的瓦檐上，冬日的一束光正好打过来</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p class="lead" style="margin-top:8px">
+  说明：文章标题超过一行时会自动折成两行，再长就截断并显示省略；站点名过长则单行省略，不会撑破 100px 高度。
+</p>
+<script>
+// 左侧平台广告位：取管理员在后台设置的平台广告图，拿不到则保留占位
+fetch('/api/platform-ad')
+  .then(function (r) { return r.json(); })
+  .then(function (d) {
+    if (!d || !d.image_url) return;
+    Array.prototype.forEach.call(document.querySelectorAll('.left'), function (el) {
+      var img = document.createElement('img');
+      img.src = d.image_url;
+      img.alt = '平台广告';
+      img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;border:0';
+      img.addEventListener('error', function () { this.remove(); });
+      el.innerHTML = '';
+      el.appendChild(img);
+    });
+  })
+  .catch(function () { /* 静态预览，失败无副作用 */ });
+</script>
+</body>
+</html>
