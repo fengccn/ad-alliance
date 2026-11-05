@@ -100,7 +100,7 @@
   <div class="card">
     <h2>双栏广告位预览</h2>
    <div id="livePreview" style="display:flex;gap:2px;height:100px;width:402px;margin:0 auto;">
-      <div style="flex:0 0 100px;width:100px;height:100px;background:#f1f3f4;border-radius:4px;overflow:hidden;display:flex;align-items:center;justify-content:center">
+      <div id="leftPreview" style="flex:0 0 100px;width:100px;height:100px;background:#f1f3f4;border-radius:4px;overflow:hidden;display:flex;align-items:center;justify-content:center">
         <span style="font-size:11px;color:#999">平台广告<br>100×100</span>
       </div>
       <div id="rightPreview" style="flex:1;height:100px;width:300px;background:#f1f3f4;border-radius:4px;overflow:hidden;display:flex;align-items:center;justify-content:center">
@@ -140,14 +140,7 @@
             <div style="font-size:12px;color:#5f6368;margin-bottom:6px">右侧背景样式（浅色纹理，随时可换）</div>
             <div id="rssThemePicker" style="display:flex;gap:8px;flex-wrap:wrap"></div>
           </div>
-          <div style="margin-top:14px">
-            <div style="font-size:12px;color:#5f6368;margin-bottom:6px">广告位效果预览（读取测试通过后显示真实文章标题）</div>
-            <div id="rssPreview" style="display:none"></div>
-            <div id="rssPreviewHint" style="font-size:12px;color:#80868b;border:1px dashed #dadce0;border-radius:6px;padding:16px;text-align:center;width:402px;max-width:100%;box-sizing:border-box">
-              填好 RSS 地址后点「读取测试」，通过即可在这里看到右侧的实际效果
-            </div>
-          </div>
-          <p class="hint">只有读取测试通过才能选用 RSS 广告。部分博客会拦截外部抓取，读取失败时请改用图片广告。</p>
+          <p class="hint">读取测试通过后，页面顶部「双栏广告位预览」会显示右侧的实际效果。部分博客会拦截外部抓取，读取失败时请改用图片广告。</p>
         </div>
       </div>
 
@@ -227,15 +220,49 @@
     }
   })();
 
-  // ---- 实时预览：右侧会员广告（输入图片地址即显示） ----
+  // ---- 实时预览：左侧平台广告 + 右侧会员广告（图片 / RSS 两种形式） ----
   function renderRightPreview() {
-    var v = document.getElementById('image_url').value.trim();
     var box = document.getElementById('rightPreview');
+    if (!box) return;
+    var mode = currentMode();
+
+    if (mode === 'rss') {
+      if (!rssPvTitle) {
+        box.innerHTML = '<span style="font-size:11px;color:#999;text-align:center">RSS 文章广告 300×100<br>读取测试通过后显示效果</span>';
+        return;
+      }
+      var theme = /^(rice|card|grid|dot)$/.test(rssTheme || '') ? rssTheme : 'rice';
+      var nameEl = document.getElementById('site_name');
+      var name = (nameEl && nameEl.value ? nameEl.value.trim() : '') || '你的博客名称';
+      box.innerHTML =
+        '<div class="aa-pv aa-pv-theme-' + theme + '" style="width:100%;height:100%">' +
+          '<div class="pv-site"><span class="pv-label">推荐博客：</span>' +
+            '<span class="pv-name">' + pvEsc(name) + '</span></div>' +
+          '<div class="pv-post">' + pvEsc(rssPvTitle) + '</div>' +
+        '</div>';
+      return;
+    }
+
+    var v = document.getElementById('image_url').value.trim();
     if (v) {
       box.innerHTML = '<img src="' + esc(v) + '" style="max-width:100%;max-height:100%;object-fit:contain" onerror="imgFallback(this)">';
     } else {
-      box.innerHTML = '<span style="font-size:11px;color:#999">你的广告 300×100<br>输入图片地址后实时显示</span>';
+      box.innerHTML = '<span style="font-size:11px;color:#999;text-align:center">你的广告 300×100<br>输入图片地址后实时显示</span>';
     }
+  }
+
+  // 左侧：平台自身广告图（管理员后台设置），拿不到就用占位
+  function renderLeftPreview() {
+    var box = document.getElementById('leftPreview');
+    if (!box) return;
+    if (pvAd && pvAd.image_url) {
+      box.innerHTML = '<img src="' + esc(pvAd.image_url) + '" alt="平台广告" ' +
+        'style="width:100%;height:100%;object-fit:cover;display:block;border:0" onerror="leftImgFallback()">';
+    }
+  }
+  function leftImgFallback() {
+    var box = document.getElementById('leftPreview');
+    if (box) box.innerHTML = '<span style="font-size:11px;color:#999">平台广告<br>100×100</span>';
   }
   document.getElementById('image_url').addEventListener('input', renderRightPreview);
 
@@ -248,6 +275,7 @@
     var isRss = currentMode() === 'rss';
     document.getElementById('rssFields').style.display = isRss ? 'block' : 'none';
     document.getElementById('imageFields').style.display = isRss ? 'none' : 'block';
+    renderRightPreview();
   }
   Array.prototype.forEach.call(document.querySelectorAll('input[name="ad_mode"]'), function (el) {
     el.addEventListener('change', syncMode);
@@ -284,7 +312,7 @@
   }
   renderThemePicker();
 
-  // ---- RSS 广告右侧效果预览（站点名 / 文章标题 / 纹理实时反映） ----
+  // ---- RSS 预览统一由页面顶部的「双栏广告位预览」承担 ----
   var rssPvTitle = '';
   function pvEsc(s) {
     return String(s == null ? '' : s)
@@ -292,39 +320,7 @@
       .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
   function renderRssPreview() {
-    var box = document.getElementById('rssPreview');
-    var hint = document.getElementById('rssPreviewHint');
-    if (!box || !hint) return;
-    if (!rssPvTitle) { box.style.display = 'none'; hint.style.display = 'block'; return; }
-
-    var nameEl = document.getElementById('site_name');
-    var name = (nameEl && nameEl.value ? nameEl.value.trim() : '') || '你的博客名称';
-
-    box.innerHTML =
-      '<div class="rss-pv-row">' +
-        '<div class="rss-pv-left">' +
-          (pvAd && pvAd.image_url
-            ? '<img src="' + pvEsc(pvAd.image_url) + '" alt="平台广告" style="width:100%;height:100%;object-fit:cover;display:block;border:0">'
-            : '平台广告<br>100×100') +
-        '</div>' +
-        '<div class="rss-pv-right">' +
-          '<div class="aa-pv aa-pv-theme-' + rssTheme + '">' +
-            '<div class="pv-site"><span class="pv-label">推荐博客：</span>' +
-              '<span class="pv-name">' + pvEsc(name) + '</span></div>' +
-            '<div class="pv-post">' + pvEsc(rssPvTitle) + '</div>' +
-          '</div>' +
-        '</div>' +
-      '</div>';
-    box.style.display = 'block';
-    hint.style.display = 'none';
-
-    // 平台广告图加载失败时回退成占位，避免出现空白方块
-    var pvImg = box.querySelector('.rss-pv-left img');
-    if (pvImg) {
-      pvImg.addEventListener('error', function () {
-        this.parentNode.innerHTML = '平台广告<br>100×100';
-      });
-    }
+    renderRightPreview();
   }
   var siteNameEl = document.getElementById('site_name');
   if (siteNameEl) siteNameEl.addEventListener('input', renderRssPreview);
@@ -333,7 +329,7 @@
   var pvAd = null;
   fetch(API + '/api/platform-ad')
     .then(function (r) { return r.json(); })
-    .then(function (d) { pvAd = d || {}; renderRssPreview(); })
+    .then(function (d) { pvAd = d || {}; renderLeftPreview(); renderRightPreview(); })
     .catch(function () { /* 拿不到就用占位 */ });
 
   // ---- RSS 读取测试（服务器实际抓一次，测试通了才能真正选用） ----
@@ -596,12 +592,12 @@
       password: document.getElementById('password').value.trim(),
       ad_mode: mode
     };
+    // 两种形式的素材都提交并保存，方便以后在会员后台随时切换，不用重填
+    payload.image_url = document.getElementById('image_url').value.trim();
+    payload.target_url = document.getElementById('target_url').value.trim();
     if (mode === 'rss') {
       payload.rss_url = document.getElementById('rss_url').value.trim();
       payload.rss_theme = rssTheme;
-    } else {
-      payload.image_url = document.getElementById('image_url').value.trim();
-      payload.target_url = document.getElementById('target_url').value.trim();
     }
     if (!payload.site_name || !payload.site_url || !payload.contact_email || !payload.password) {
       result.className = 'result err'; result.style.display = 'block';

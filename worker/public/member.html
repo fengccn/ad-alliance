@@ -128,6 +128,22 @@
       </h2>
       <div style="clear:both"></div>
       <div class="stats-grid" id="statsGrid"></div>
+
+      <div style="border-top:1px dashed #e8eaed;margin-top:16px;padding-top:14px">
+        <div class="muted" style="margin-bottom:8px">站点资料（换站点名称、网址或邮箱后可在这里修改，保存即生效）</div>
+        <div class="row">
+          <div class="field grow"><label>站点名称</label><input id="p_site_name" placeholder="例如：风城博客"></div>
+          <div class="field grow"><label>站点网址</label><input id="p_site_url" placeholder="https://example.com"></div>
+        </div>
+        <div class="row">
+          <div class="field grow"><label>联系邮箱</label><input id="p_contact_email" placeholder="you@example.com"></div>
+          <div class="field grow" style="display:flex;align-items:flex-end">
+            <button class="btn" id="profileBtn" style="width:auto;padding:10px 18px">保存资料</button>
+          </div>
+        </div>
+        <div id="profileMsg" class="msg" style="display:none"></div>
+        <p class="muted" style="margin:6px 0 0">改邮箱会影响审核、驳回等通知的收件地址；改站名与网址会同步到你广告位右栏的展示与点击跳转。</p>
+      </div>
     </div>
 
     <div class="card">
@@ -466,6 +482,10 @@
       var st = await api('/api/stats?site_id=' + encodeURIComponent(token.site_id) + '&api_key=' + encodeURIComponent(token.api_key));
       document.getElementById('siteName').textContent = st.site_name;
       document.getElementById('siteIdShow').textContent = token.site_id;
+      // 回填站点资料（可修改）
+      document.getElementById('p_site_name').value = st.site_name || '';
+      document.getElementById('p_site_url').value = st.site_url || '';
+      document.getElementById('p_contact_email').value = st.contact_email || '';
       document.getElementById('statsGrid').innerHTML =
         '<div class="stat"><div class="num">' + st.as_publisher.impressions.toLocaleString() + '</div><div class="lbl">我展示的曝光</div></div>' +
         '<div class="stat"><div class="num">' + st.as_publisher.clicks.toLocaleString() + '</div><div class="lbl">我展示的点击</div></div>' +
@@ -522,6 +542,38 @@
     }
   }
 
+  // ---- 保存站点资料（站名 / 网址 / 邮箱） ----
+  document.getElementById('profileBtn').addEventListener('click', async function () {
+    var b = this;
+    var msg = document.getElementById('profileMsg');
+    var payload = {
+      site_id: Number(token.site_id),
+      api_key: token.api_key,
+      site_name: document.getElementById('p_site_name').value.trim(),
+      site_url: document.getElementById('p_site_url').value.trim(),
+      contact_email: document.getElementById('p_contact_email').value.trim()
+    };
+    if (!payload.site_name || !payload.site_url || !payload.contact_email) {
+      showMsg(msg, false, '站点名称、站点网址、联系邮箱都不能为空');
+      return;
+    }
+    b.disabled = true;
+    try {
+      var r = await api('/api/member/profile', { method: 'POST', body: JSON.stringify(payload) });
+      showMsg(msg, true, (r && r.message) || '站点资料已更新');
+      if (r && r.site_name) {
+        document.getElementById('siteName').textContent = r.site_name;
+        mSiteName = r.site_name;
+        renderMRssPreview();
+      }
+      loadAll();
+    } catch (e) {
+      showMsg(msg, false, '保存失败：' + e.message);
+    } finally {
+      b.disabled = false;
+    }
+  });
+
   // ---- 保存/修改唯一广告，或切换广告形式（自动触发重新审核） ----
   document.getElementById('adBtn').addEventListener('click', async function () {
     var b = this; b.disabled = true;
@@ -536,12 +588,12 @@
         api_key: token.api_key,
         ad_mode: mode
       };
+      // 两种形式的素材都提交，切换后另一套数据不会丢
+      payload.image_url = document.getElementById('ad_image_url').value.trim();
+      payload.target_url = document.getElementById('ad_target_url').value.trim();
       if (mode === 'rss') {
         payload.rss_url = document.getElementById('m_rss_url').value.trim();
         payload.rss_theme = mTheme;
-      } else {
-        payload.image_url = document.getElementById('ad_image_url').value.trim();
-        payload.target_url = document.getElementById('ad_target_url').value.trim();
       }
       var r = await api('/api/ads', { method: 'POST', body: JSON.stringify(payload) });
       showMsg(
