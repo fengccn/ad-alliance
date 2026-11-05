@@ -183,9 +183,20 @@
       var rows = await api('/admin/api/ads?status=pending');
       if (!rows.length) { body.innerHTML = '<tr><td colspan="6" class="muted">暂无待审广告</td></tr>'; return; }
       body.innerHTML = rows.map(function (a) {
+        var isRss = a.ad_mode === 'rss';
+        var modeCell = isRss
+          ? '<span style="display:inline-block;padding:2px 8px;border-radius:4px;background:#e8f0fe;color:#1a73e8;font-size:12px">RSS 文章广告</span>' +
+            '<div class="muted" style="margin-top:4px;max-width:260px">RSS：' + esc(a.rss_url || '') + '</div>' +
+            '<div class="muted" style="margin-top:2px;max-width:260px">状态：' + esc(a.rss_status || 'ok') + '</div>'
+          : '<img class="ad" src="' + esc(a.image_url) + '" onerror="this.style.display=\'none\'">';
+        var targetCell = isRss
+          ? '<span class="muted">站点：' + esc(a.site_url || '') + '</span><br>' +
+            '<span class="muted">最新文章：' + esc(a.rss_article_title || '（无）') + '</span><br>' +
+            (a.rss_article_url ? '<a class="link" href="' + esc(a.rss_article_url) + '" target="_blank" rel="nofollow">' + esc(a.rss_article_url) + '</a>' : '')
+          : '<a class="link" href="' + esc(a.target_url) + '" target="_blank" rel="nofollow">' + esc(a.target_url) + '</a>';
         return '<tr><td>'+a.id+'</td><td>'+esc(a.site_name)+'<div class="muted">site#'+a.site_id+'</div></td>' +
-          '<td><img class="ad" src="'+esc(a.image_url)+'" onerror="this.style.display=\'none\'"></td>' +
-          '<td><a class="link" href="'+esc(a.target_url)+'" target="_blank" rel="nofollow">'+esc(a.target_url)+'</a></td>' +
+          '<td>' + modeCell + '</td>' +
+          '<td>' + targetCell + '</td>' +
           '<td class="muted">'+esc(a.created_at)+'</td>' +
           '<td><button class="btn btn-ok" data-act="approve" data-id="'+a.id+'">通过</button> ' +
           '<button class="btn btn-danger" data-act="reject" data-id="'+a.id+'">驳回</button></td></tr>';
@@ -202,6 +213,32 @@
     } catch (err) { toast('失败：' + err.message); btn.disabled = false; }
   });
 
+  // 站点列表「会员广告」单元格：图片广告显示缩略图，RSS 广告显示同比例的样式预览
+  function siteAdCell(s) {
+    if (s.ad_mode === 'rss') {
+      return '<div style="width:180px;height:60px;box-sizing:border-box;padding:5px 7px;' +
+          'border:1px solid rgba(0,0,0,.08);border-radius:3px;overflow:hidden;' +
+          'background-color:#faf7ef;' +
+          'background-image:radial-gradient(rgba(140,105,60,.10) 1px,transparent 1.2px),' +
+          'radial-gradient(rgba(140,105,60,.06) 1px,transparent 1.2px);' +
+          'background-size:13px 13px,9px 9px">' +
+          '<div style="font-size:10px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.4">' +
+            '<span style="color:#8d8d8d">推荐博客：</span><b style="color:#1a73e8">' + esc(s.site_name || '') + '</b>' +
+          '</div>' +
+          '<div style="margin-top:3px;font-size:10px;line-height:1.35;text-align:center;color:#0f766e;' +
+            'display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">' +
+            esc(s.rss_article_title || '（暂无文章）') +
+          '</div>' +
+        '</div>' +
+        '<div class="muted" style="font-size:11px;margin-top:2px">RSS 文章广告' +
+          (s.rss_status === 'error' ? ' · <span style="color:#d93025">读取失败，已暂停</span>' : '') +
+        '</div>';
+    }
+    return s.ad_image_url
+      ? '<img class="ad" src="'+esc(s.ad_image_url)+'" title="会员广告" style="max-height:40px;max-width:180px" onerror="this.style.display=\'none\'">'
+      : '<span class="muted">无广告</span>';
+  }
+
   // ---- 站点管理 ----
   async function loadSites() {
     var body = document.getElementById('sitesBody');
@@ -210,9 +247,7 @@
       if (!rows.length) { body.innerHTML = '<tr><td colspan="9" class="muted">暂无站点</td></tr>'; return; }
       body.innerHTML = rows.map(function (s) {
         return '<tr><td>'+s.id+'</td><td><b>'+esc(s.site_name)+'</b><div class="muted">'+esc(s.site_url)+'</div></td>' +
-          '<td>'+(s.ad_image_url
-            ? '<img class="ad" src="'+esc(s.ad_image_url)+'" title="会员广告" style="max-height:40px;max-width:180px" onerror="this.style.display=\'none\'">'
-            : '<span class="muted">无广告</span>')+'</td>' +
+          '<td>'+siteAdCell(s)+'</td>' +
           '<td>'+esc(s.contact_email)+'</td><td>'+badge(s.status)+'</td>' +
           '<td>'+s.ad_count+'</td><td>'+s.imp_count+' / '+s.clk_count+'</td>' +
           '<td><input type="number" min="1" value="'+s.daily_cap+'" data-cap="'+s.id+'" style="width:90px;padding:4px">' +
