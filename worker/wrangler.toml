@@ -22,3 +22,9 @@ APP_BASE = "https://blogunion.880200.xyz"
 # 新站冷启动：注册不满 NEW_SITE_DAYS 天的站点，权重乘 NEW_SITE_BOOST
 NEW_SITE_DAYS = "7"
 NEW_SITE_BOOST = "1.5"
+
+# 定时任务：每 2 小时刷新所有 RSS 站点的「最新文章」缓存。
+# 这样加盟站点不用每次曝光都去抓第三方 RSS，文章标题也能保持较新。
+# 若不想启用定时刷新，删掉下面两行即可（会员页仍可手动点「刷新最新文章」）。
+[triggers]
+crons = ["0 */2 * * *"]

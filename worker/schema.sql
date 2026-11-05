@@ -19,6 +19,12 @@ CREATE TABLE IF NOT EXISTS sites (
   daily_cap        INTEGER NOT NULL DEFAULT 5000,              -- 该站点广告每日最多被展示的次数（防止大户垄断）
   self_image_url   TEXT,                                       -- 联盟站点自身的广告图（左侧 100x100）
   self_target_url  TEXT,                                       -- 自身广告点击后跳转的真实地址
+  ad_mode          TEXT    NOT NULL DEFAULT 'image',           -- 广告形式：image 图片广告 / rss 文章广告（整站二选一）
+  rss_url          TEXT,                                       -- RSS/Atom 订阅地址（rss 模式使用）
+  rss_article_title TEXT,                                      -- 缓存的 RSS 最新文章标题（只存 1 篇）
+  rss_article_url  TEXT,                                       -- 缓存的最新文章链接
+  rss_status       TEXT    NOT NULL DEFAULT 'ok',              -- RSS 读取状态：ok / error（error 时暂停该站点广告）
+  rss_theme        TEXT    NOT NULL DEFAULT 'rice',            -- RSS 广告背景样式：rice 宣纸 / card 卡纸 / grid 格纹 / dot 点纹
   created_at       TEXT    NOT NULL DEFAULT (datetime('now'))  -- 注册时间
 );
 
